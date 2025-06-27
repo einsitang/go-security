@@ -1,4 +1,10 @@
-# Refinement of the README.md Introduction
+# go-security
+
+go-security is a lightweight and flexible security framework for Go applications, designed to provide fine-grained access control based on *endpoint routing* and *permission expressions*.
+
+# 🚀 Overview
+
+This library allows developers to define secure access rules for endpoints using expressive syntax. It supports dynamic route parameters, wildcard paths, and complex permission logic combining roles, permissions, and groups with logical and comparison operators.
 
 ## Endpoint Routing (endpoint)
 
@@ -134,11 +140,11 @@ if pass {
 }
 ```
 
-### Integration with Gin Framework
+## 🛠️ Integration
 For integration with the Gin framework, use `gin-security`.
 
-### FAQ
+## 💡 FAQ
 Common questions and answers section.
 
-### Contribution
+## Contribution
 Guidelines for contributing to the project.
