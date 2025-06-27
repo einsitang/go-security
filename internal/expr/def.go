@@ -30,7 +30,7 @@ func buildSyntaxDef(token *tokenizer.Token) (*syntaxDef, error) {
 				Token:    token,
 				Priority: 55,
 				Kind:     2,
-				Type:     syntax.Type_String | syntax.Type_Number,
+				Type:     syntax.Type_Bool | syntax.Type_String | syntax.Type_Number,
 			}, nil
 		}
 		if token.ValueString() == "!=" {
@@ -38,7 +38,7 @@ func buildSyntaxDef(token *tokenizer.Token) (*syntaxDef, error) {
 				Token:    token,
 				Priority: 55,
 				Kind:     2,
-				Type:     syntax.Type_String | syntax.Type_Number,
+				Type:     syntax.Type_Bool | syntax.Type_String | syntax.Type_Number,
 			}, nil
 		}
 		return &syntaxDef{
@@ -54,7 +54,7 @@ func buildSyntaxDef(token *tokenizer.Token) (*syntaxDef, error) {
 				Token:    token,
 				Priority: 35,
 				Kind:     2,
-				Type:     syntax.Type_Bool | syntax.Type_Number | syntax.Type_String,
+				Type:     syntax.Type_Number,
 			}, nil
 		}
 		// * / %

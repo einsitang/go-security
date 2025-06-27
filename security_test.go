@@ -37,8 +37,8 @@ func TestSecurity(t *testing.T) {
 		roles: []string{"admin"},
 	}
 	begin := time.Now()
-	// endPoint := "/api/v1/books?category=2"
-	endPoint := "/api/v1/files/2025/05/22"
+	endPoint := "/api/v1/books?category=2"
+	// endPoint := "/api/v1/files/2025/05/22"
 	pass, err := security.Guard(endPoint, _principal)
 	end := time.Now()
 	totalTime := end.UnixMicro() - begin.UnixMicro()
