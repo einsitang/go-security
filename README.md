@@ -1,5 +1,9 @@
 # go-security
 
+[![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
+[![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
+
+
 go-security 是一个专为 Go 应用程序设计的轻量级且灵活的安全框架，旨在基于端点路由和权限表达式提供精细的访问控制。
 
 # 🚀 概述
@@ -89,7 +93,7 @@ func (p *principal) Groups() []string {
 
 规则文件 `rule.txt` 格式
 
-endpoint,express
+**endpoint**,**express**
 ```
 # rule.txt
 /api/v1/books?category=:category, allow:Role('admin') and $category == '2'
@@ -149,7 +153,7 @@ if pass {
 
 ## 🛠️ 集成
 
-gin-security
+gin-security - 计划中
 
 ## 💡 FAQ
 

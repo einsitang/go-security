@@ -1,6 +1,9 @@
 # go-security
 
-go-security is a lightweight and flexible security framework for Go applications, designed to provide fine-grained access control based on *endpoint routing* and *permission expressions*.
+[![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
+[![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
+
+go-security is a lightweight and flexible security framework for Go applications, designed to provide fine-grained access control based on **endpoint routing** and **permission expressions**.
 
 # 🚀 Overview
 
@@ -141,7 +144,7 @@ if pass {
 ```
 
 ## 🛠️ Integration
-For integration with the Gin framework, use `gin-security`.
+For integration with the Gin framework, use `gin-security`. (in the plan)
 
 ## 💡 FAQ
 Common questions and answers section.
