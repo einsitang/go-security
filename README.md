@@ -2,7 +2,7 @@
 
 # 介绍
 
-## 路由端点
+## 端点路由 endpoint
 
 ### 参数
 `/api/v1/users/:userId` // $userId
@@ -25,7 +25,7 @@
 > 
 > /imgs/avator/2025/05/19/xxx.jpg , $0 = avator/2025/05/19/xxx.jpg 
 
-## 权限表达式
+## 权限表达式 express
 
 ### 策略
 
@@ -50,6 +50,97 @@
 # example:
 allow: Role("admin") or (Permission('doc:read') and $category == "guest")
 deny: Group("guest") and $category == "tech"
+```
+
+## 使用 usage
+
+创建并实现 `Principal` 接口,用于指定 用户权限(Roles/Permissions/Groups)
+```go
+// 实现 Principal 接口
+type principal struct {
+	id          string
+	roles       []string
+	permissions []string
+	groups      []string
+}
+
+func (p *principal) Id() string {
+	return p.id
+}
+
+func (p *principal) Roles() []string {
+	return p.roles
+}
+
+func (p *principal) Permissions() []string {
+	return p.permissions
+}
+
+func (p *principal) Groups() []string {
+	return p.groups
+}
+```
+
+通过加载规则文件创建 `Security` 实例
+
+规则文件 `rule.txt` 格式
+
+endpoint,express
+```
+# rule.txt
+/api/v1/books?category=:category, allow:Role('admin') and $category == '2'
+/api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
+```
+
+使用 `WithConfig` 初始化 `Security` 实例
+```go
+
+
+// 通过配置文件
+rulePath := "./rule.txt"
+security := NewSecurity(WithConfig(rulePath))
+
+// 配置 principal 的权限信息
+_principal := &principal{
+    roles: []string{"admin"},
+}
+endPoint := "/api/v1/books?category=2"
+pass, err := security.Guard(endPoint, _principal)
+if err !=nil {
+    // 没匹配上路由，可以忽略pass
+    log.Println(err)
+}
+if pass {
+    log.Println("放行")
+}else{
+    log.Println("阻止")
+}
+
+```
+
+自由添加端点表达式
+
+```go
+security := NewSecurity()
+security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
+
+// 配置 principal 的权限信息
+_principal := &principal{
+    roles: []string{"admin"},
+}
+
+endPoint := "/api/v1/books?category=2"
+pass, err := security.Guard(endPoint, _principal)
+if err !=nil {
+    // 没匹配上路由，可以忽略pass
+    log.Println(err)
+}
+if pass {
+    log.Println("放行")
+}else{
+    log.Println("阻止")
+}
+
 ```
 
 ## 集成

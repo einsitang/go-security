@@ -1,13 +1,15 @@
 package security
 
 import (
+	"io"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/einsitang/go-security/internal/expr"
 	"github.com/einsitang/go-security/internal/expr/ctx"
 	"github.com/einsitang/go-security/internal/parse"
 )
-
-type security struct {
-}
 
 type Security interface {
 	RegEndpoint(endpoint string, express string) error
@@ -38,10 +40,18 @@ func (se *se) Guard(endpoint string, principal ctx.Principal) (bool, error) {
 		return true, nil
 	}
 
-	return syntaxTree.Syntax.Evaluate(&ctx.Context{
+	checked := syntaxTree.Syntax.Evaluate(&ctx.Context{
 		Params:    params,
 		Principal: principal,
-	}).Value.(bool), nil
+	}).Value.(bool)
+	policy := syntaxTree.Policy
+
+	if policy == "allow" {
+		return checked, nil
+	}
+
+	// else policy == demy
+	return !checked, nil
 }
 
 func (se *se) CleanEndpoints() {
@@ -50,18 +60,45 @@ func (se *se) CleanEndpoints() {
 	se.analyzer = expr.NewAnalyzer()
 }
 
-func NewSecurity() Security {
-	return &se{
+type SecurityOption func(se *se)
+
+func WithConfig(configPath string) SecurityOption {
+	file, err := os.Open(configPath)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		file.Close()
+	}()
+	content, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	text := string(content)
+
+	return func(se *se) {
+		lines := strings.Split(text, "\n")
+		for _, line := range lines {
+			endpoint, express, ok := strings.Cut(line, ",")
+			if !ok {
+				log.Println("invalid line:", line)
+				continue
+			}
+			se.RegEndpoint(endpoint, express)
+		}
+	}
+}
+
+func NewSecurity(options ...SecurityOption) Security {
+	_se := &se{
 		router:     parse.NewRouter([]string{}),
 		expression: make(map[string]*expr.SyntaxTree),
 		analyzer:   expr.NewAnalyzer(),
 	}
-}
 
-// func NewFromConfig(config string) (Security, error) {
-// 	// 解析配置并创建 Security 实例
-// 	security := &securityContext{
-// 		config: config,
-// 	}
-// 	return security, nil
-// }
+	for _, option := range options {
+		option(_se)
+	}
+	return _se
+}

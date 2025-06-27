@@ -2,6 +2,7 @@ package security
 
 import (
 	"testing"
+	"time"
 )
 
 type principal struct {
@@ -28,14 +29,19 @@ func (p *principal) Groups() []string {
 }
 
 func TestSecurity(t *testing.T) {
-	security := NewSecurity()
-	security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
+	rulePath := "./rule.txt"
+	security := NewSecurity(WithConfig(rulePath))
+	// security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
 
 	_principal := &principal{
 		roles: []string{"admin"},
 	}
-	endPoint := "/api/v1/books?category=2"
+	begin := time.Now()
+	// endPoint := "/api/v1/books?category=2"
+	endPoint := "/api/v1/files/2025/05/22"
 	pass, err := security.Guard(endPoint, _principal)
-	t.Logf("pass: %v, err: %v", pass, err)
+	end := time.Now()
+	totalTime := end.UnixMicro() - begin.UnixMicro()
+	t.Logf("pass: %v, err: %v, total time: %v microsecond", pass, err, totalTime)
 
 }
