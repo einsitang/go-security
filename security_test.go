@@ -37,9 +37,9 @@ func TestSecurity(t *testing.T) {
 		roles: []string{"admin"},
 	}
 	begin := time.Now()
-	endPoint := "/api/v1/books?category=2"
-	// endPoint := "/api/v1/files/2025/05/22"
-	pass, err := security.Guard(endPoint, _principal)
+	endpoint := "GET /api/v1/books?category=2"
+	// endpoint := "/api/v1/files/2025/05/22"
+	pass, err := security.Guard(endpoint, _principal)
 	end := time.Now()
 	totalTime := end.UnixMicro() - begin.UnixMicro()
 	t.Logf("pass: %v, err: %v, total time: %v microsecond", pass, err, totalTime)

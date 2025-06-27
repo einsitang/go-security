@@ -3,7 +3,6 @@
 [![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
 [![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
 
-
 go-security 是一个专为 Go 应用程序设计的轻量级且灵活的安全框架，旨在基于端点路由和权限表达式提供精细的访问控制。
 
 # 🚀 概述
@@ -12,14 +11,31 @@ go-security 是一个专为 Go 应用程序设计的轻量级且灵活的安全�
 
 ## 端点路由 endpoint
 
+`endpoint` 格式:
+
+**METHOD** **PATH**
+
+example:
+
+`GET /api/v1/users` **method** 不区分大小写，建议全大写
+
+多种 **method** 使用 `/` 分割
+
+`GET/POST /api/v1/users`
+
+也可以不使用 **method** 即:
+
+`/api/v1/users` 此时忽略 **method** , 当匹配时相当于通配所有 **method**
+
 ### 参数
-`/api/v1/users/:userId` // $userId
 
-样例: `/api/v1/users/1` , $userId = 1
+`GET /api/v1/users/:userId` // $userId
 
-`/api/v1/books?category=:category` // $category
+样例: `GET/POST /api/v1/users/1` , $userId = 1
 
-样例: `/api/v1/books?category=computer` , $category = computer
+`GET /api/v1/books?category=:category` // $category
+
+样例: `GET /api/v1/books?category=computer` , $category = computer
 
 ### 通配符
 
@@ -63,47 +79,50 @@ deny: Group("guest") and $category == "tech"
 ## 使用 usage
 
 创建并实现 `Principal` 接口,用于指定 用户权限(Roles/Permissions/Groups)
+
 ```go
 // 实现 Principal 接口
 type principal struct {
-	id          string
-	roles       []string
-	permissions []string
-	groups      []string
+    id          string
+    roles       []string
+    permissions []string
+    groups      []string
 }
 
 func (p *principal) Id() string {
-	return p.id
+    return p.id
 }
 
 func (p *principal) Roles() []string {
-	return p.roles
+    return p.roles
 }
 
 func (p *principal) Permissions() []string {
-	return p.permissions
+    return p.permissions
 }
 
 func (p *principal) Groups() []string {
-	return p.groups
+    return p.groups
 }
 ```
 
 通过加载规则文件创建 `Security` 实例
 
-规则文件 `rule.txt` 格式
+规则文件 `rule.txt` 格式:
 
-**endpoint**,**express**
+**endpoint**, **express**
+
 ```
 # rule.txt
+# 忽略method
 /api/v1/books?category=:category, allow:Role('admin') and $category == '2'
-/api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
+# 仅支持 GET 或者 POST 方法
+GET/POST /api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
 ```
 
 使用 `WithConfig` 初始化 `Security` 实例
+
 ```go
-
-
 // 通过配置文件
 rulePath := "./rule.txt"
 security := NewSecurity(WithConfig(rulePath))
@@ -112,8 +131,8 @@ security := NewSecurity(WithConfig(rulePath))
 _principal := &principal{
     roles: []string{"admin"},
 }
-endPoint := "/api/v1/books?category=2"
-pass, err := security.Guard(endPoint, _principal)
+endpoint := "GET /api/v1/books?category=2"
+pass, err := security.Guard(endpoint, _principal)
 if err !=nil {
     // 没匹配上路由，可以忽略pass
     log.Println(err)
@@ -123,7 +142,6 @@ if pass {
 }else{
     log.Println("阻止")
 }
-
 ```
 
 自由添加端点表达式
@@ -131,14 +149,15 @@ if pass {
 ```go
 security := NewSecurity()
 security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
+security.RegEndpoint("GET/POST /api/v1/files/:year/:month/:day/:filename", "allow:Role('admin') and $year == '2025' and $month == '05'")
 
 // 配置 principal 的权限信息
 _principal := &principal{
     roles: []string{"admin"},
 }
 
-endPoint := "/api/v1/books?category=2"
-pass, err := security.Guard(endPoint, _principal)
+endpoint := "GET /api/v1/books?category=2"
+pass, err := security.Guard(endpoint, _principal)
 if err !=nil {
     // 没匹配上路由，可以忽略pass
     log.Println(err)
@@ -148,7 +167,6 @@ if pass {
 }else{
     log.Println("阻止")
 }
-
 ```
 
 ## 🛠️ 集成
@@ -158,4 +176,3 @@ gin-security - 计划中
 ## 💡 FAQ
 
 ## 贡献
-

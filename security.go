@@ -1,6 +1,7 @@
 package security
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -25,18 +26,33 @@ type se struct {
 
 func (se *se) RegEndpoint(endpoint string, express string) error {
 	se.router.Add(endpoint)
-	se.expression[endpoint] = se.analyzer.Parse(express)
+
+	var methods []string
+	methodStr, pattern, ok := strings.Cut(endpoint, " ")
+	if !ok {
+		methods = []string{""}
+		pattern = endpoint
+	} else {
+		methods = strings.Split(strings.Trim(methodStr, "/"), "/")
+	}
+
+	syntaxTree := se.analyzer.Parse(express)
+	for _, method := range methods {
+		se.expression[fmt.Sprintf("%s %s", method, pattern)] = syntaxTree
+	}
+
 	return nil
 }
 
 func (se *se) Guard(endpoint string, principal ctx.Principal) (bool, error) {
-	match, params, err := se.router.Match(endpoint)
+	pattern, params, err := se.router.Match(endpoint)
 	if err != nil {
 		return false, err
 	}
 
-	syntaxTree, ok := se.expression[match]
+	syntaxTree, ok := se.expression[pattern]
 	if !ok {
+		// 没有匹配上
 		return true, nil
 	}
 

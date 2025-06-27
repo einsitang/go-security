@@ -9,11 +9,13 @@ import (
 
 // Router 路由树结构
 type Router struct {
-	root *node // 根节点
+	// root *node // 根节点
+	roots map[string]*node // 根节点
 }
 
 // node 路由树节点
 type node struct {
+	method         string           // 方法
 	segment        string           // 当前路径段
 	nodeType       int              // 节点类型（0=静态, 1=参数, 2=通配符）
 	staticChildren map[string]*node // 静态子节点映射表
@@ -36,11 +38,12 @@ const (
 // NewRouter 创建新的路由树
 func NewRouter(patterns []string) *Router {
 	router := &Router{
-		root: &node{
-			segment:        "/",
-			nodeType:       nodeTypeStatic,
-			staticChildren: make(map[string]*node),
-		},
+		roots: make(map[string]*node),
+		// root: &node{
+		// 	segment:        "/",
+		// 	nodeType:       nodeTypeStatic,
+		// 	staticChildren: make(map[string]*node),
+		// },
 	}
 	if len(patterns) > 0 {
 		router.Add(patterns...)
@@ -49,8 +52,10 @@ func NewRouter(patterns []string) *Router {
 }
 
 // Add 添加一个或多个路由规则
-func (r *Router) Add(patterns ...string) {
-	for _, pattern := range patterns {
+func (r *Router) Add(endpoints ...string) {
+	for _, endpoint := range endpoints {
+
+		methods, pattern := splitMethodAndPattern(endpoint)
 		// 分割路径和查询参数
 		pathPart, queryPart := splitPathAndQuery(pattern)
 		pathSegments := splitPath(pathPart)
@@ -61,19 +66,37 @@ func (r *Router) Add(patterns ...string) {
 		// 解析查询参数中的变量
 		queryParams := parseQueryParams(queryPart)
 
-		// 添加到路由树
-		r.root.addRoute(pathSegments, pattern, queryPart, queryParams, wildcardCnt)
+		for _, _method := range methods {
+			method := strings.ToUpper(_method)
+
+			root, ok := r.roots[method]
+			if !ok {
+				root = &node{
+					method:         method,
+					segment:        "/",
+					nodeType:       nodeTypeStatic,
+					staticChildren: make(map[string]*node),
+				}
+				r.roots[method] = root
+			}
+			// 添加到路由树
+			root.addRoute(method, pathSegments, pattern, queryPart, queryParams, wildcardCnt)
+		}
 	}
 }
 
-// Match 严格匹配路由（包括路径和查询参数）
-func (r *Router) Match(fullPath string) (pattern string, params map[string]any, err error) {
+func (r *Router) match(method string, fullPath string) (pattern string, params map[string]any, err error) {
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	pathSegments := splitPath(pathPart)
 
 	// 查找路径匹配
-	pathParams, leafNode, wildcardValues := r.root.findRoute(pathSegments, nil, nil)
+	root, ok := r.roots[method]
+	if !ok {
+		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+	}
+
+	pathParams, leafNode, wildcardValues := root.findRoute(pathSegments, nil, nil)
 	if leafNode == nil {
 		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
 	}
@@ -105,17 +128,39 @@ func (r *Router) Match(fullPath string) (pattern string, params map[string]any, 
 	}
 
 	// 返回完整模式
-	return leafNode.pattern, params, nil
+	return leadfNodePattern(leafNode), params, nil
 }
 
-// MatchPath 只匹配路径部分，忽略查询参数匹配
-func (r *Router) MatchPath(fullPath string) (pattern string, params map[string]string, err error) {
+// Match 严格匹配路由（包括路径和查询参数）
+func (r *Router) Match(endpoint string) (pattern string, params map[string]any, err error) {
+	methods, fullPath := splitMethodAndPattern(endpoint)
+	method := strings.ToUpper(methods[0])
+
+	if method == "" {
+		return r.match(method, fullPath)
+	}
+	pattern, params, err = r.match(method, fullPath)
+	if err != nil {
+		// 没找到，从 空 root 中再次尝试匹配
+		return r.match("", fullPath)
+	}
+
+	return pattern, params, err
+}
+
+func (r *Router) matchPath(method string, fullPath string) (pattern string, params map[string]string, err error) {
+
+	root, ok := r.roots[method]
+	if !ok {
+		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+	}
+
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	pathSegments := splitPath(pathPart)
 
 	// 查找路径匹配
-	pathParams, leafNode, wildcardValues := r.root.findRoute(pathSegments, nil, nil)
+	pathParams, leafNode, wildcardValues := root.findRoute(pathSegments, nil, nil)
 	if leafNode == nil {
 		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
 	}
@@ -142,7 +187,44 @@ func (r *Router) MatchPath(fullPath string) (pattern string, params map[string]s
 	}
 
 	// 返回完整模式
-	return leafNode.pattern, params, nil
+	return leadfNodePattern(leafNode), params, nil
+}
+
+// MatchPath 只匹配路径部分，忽略查询参数匹配
+func (r *Router) MatchPath(endpoint string) (pattern string, params map[string]string, err error) {
+
+	methods, fullPath := splitMethodAndPattern(endpoint)
+	method := strings.ToUpper(methods[0])
+
+	if method == "" {
+		return r.matchPath(method, fullPath)
+	}
+	pattern, params, err = r.matchPath(method, fullPath)
+	if err != nil {
+		// 没找到，从 空 root 中再次尝试匹配
+		return r.matchPath("", fullPath)
+	}
+
+	return pattern, params, err
+}
+
+func leadfNodePattern(leafNode *node) string {
+	return strings.Trim(fmt.Sprintf("%s %s", leafNode.method, leafNode.pattern), " ")
+}
+
+func splitMethodAndPattern(endpoint string) ([]string, string) {
+	var pattern string
+	var methods []string
+	// 分割方法
+	matchStr, pattern, ok := strings.Cut(endpoint, " ")
+	if !ok {
+		methods = []string{""}
+		pattern = endpoint
+	} else {
+		methods = strings.Split(strings.Trim(matchStr, "/"), "/")
+	}
+	pattern = strings.Trim(pattern, " ")
+	return methods, pattern
 }
 
 // 检查查询参数是否匹配
@@ -271,9 +353,10 @@ func countWildcards(segments []string) int {
 }
 
 // addRoute 添加路由到节点
-func (n *node) addRoute(segments []string, pattern, queryPart string, queryParams map[string]bool, wildcardCnt int) {
+func (n *node) addRoute(method string, segments []string, pattern, queryPart string, queryParams map[string]bool, wildcardCnt int) {
 	if len(segments) == 0 {
 		// 叶节点：保存完整信息
+		n.method = method
 		n.pattern = pattern
 		n.queryPattern = queryPart
 		n.queryParams = queryParams
@@ -288,17 +371,19 @@ func (n *node) addRoute(segments []string, pattern, queryPart string, queryParam
 	case currentSeg == "*": // 通配符节点
 		if n.wildcard == nil {
 			n.wildcard = &node{
+				method:         method,
 				segment:        "*",
 				nodeType:       nodeTypeWildcard,
 				staticChildren: make(map[string]*node),
 			}
 		}
-		n.wildcard.addRoute(remaining, pattern, queryPart, queryParams, wildcardCnt)
+		n.wildcard.addRoute(method, remaining, pattern, queryPart, queryParams, wildcardCnt)
 
 	case strings.HasPrefix(currentSeg, ":"): // 参数节点
 		paramName := currentSeg[1:]
 		if n.paramChild == nil {
 			n.paramChild = &node{
+				method:         method,
 				segment:        currentSeg,
 				nodeType:       nodeTypeParam,
 				staticChildren: make(map[string]*node),
@@ -307,12 +392,10 @@ func (n *node) addRoute(segments []string, pattern, queryPart string, queryParam
 			// 记录参数名
 			n.paramNames = append(n.paramNames, paramName)
 		} else if n.paramChild.segment != currentSeg {
-			// log.Printf("警告: 路由 ( %s ) 节点 %s 与现有节点 %s 存在冲突,会导致参数错误\n", pattern, currentSeg, n.paramChild.segment)
-			// log.Printf("请使用 %s 替代 %s\n", strings.ReplaceAll(pattern, currentSeg, n.paramChild.segment), pattern)
 			log.Printf("Warning: Endpoint ( %s ) node \"%s\" conflicts with existing node \"%s\", which may cause parameter errors\n", pattern, currentSeg, n.paramChild.segment)
 			log.Printf("fix endpoint use \"%s\" replace \"%s\" \n", strings.ReplaceAll(pattern, currentSeg, n.paramChild.segment), pattern)
 		}
-		n.paramChild.addRoute(remaining, pattern, queryPart, queryParams, wildcardCnt)
+		n.paramChild.addRoute(method, remaining, pattern, queryPart, queryParams, wildcardCnt)
 
 	default: // 静态节点
 		// 初始化staticChildren映射（如果尚未初始化）
@@ -324,13 +407,14 @@ func (n *node) addRoute(segments []string, pattern, queryPart string, queryParam
 		child, exists := n.staticChildren[currentSeg]
 		if !exists {
 			child = &node{
+				method:         method,
 				segment:        currentSeg,
 				nodeType:       nodeTypeStatic,
 				staticChildren: make(map[string]*node),
 			}
 			n.staticChildren[currentSeg] = child
 		}
-		child.addRoute(remaining, pattern, queryPart, queryParams, wildcardCnt)
+		child.addRoute(method, remaining, pattern, queryPart, queryParams, wildcardCnt)
 	}
 }
 
@@ -383,7 +467,10 @@ func (n *node) findRoute(segments []string, params map[string]string, wildcardVa
 // PrintTree 打印路由树结构（调试用）
 func (r *Router) PrintTree() {
 	fmt.Println("路由树结构:")
-	printNode(r.root, "", true)
+	for _, root := range r.roots {
+		printNode(root, "", true)
+		fmt.Println("--- --- --- --- --- ---")
+	}
 }
 
 // printNode 递归打印节点及其子树
@@ -400,7 +487,7 @@ func printNode(n *node, indent string, isLast bool) {
 	}
 
 	// 节点描述
-	desc := fmt.Sprintf("%s: %s", typeDesc, n.segment)
+	desc := fmt.Sprintf("%s: %s [ %s ]", typeDesc, n.segment, n.method)
 	if n.pattern != "" {
 		desc += fmt.Sprintf(" -> [%s]", n.pattern)
 	}
