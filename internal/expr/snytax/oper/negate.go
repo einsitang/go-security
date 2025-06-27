@@ -47,10 +47,13 @@ func (s *negateSyntax) ReturnType() int {
 
 // 运行求值
 func (s *negateSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
-	return s.val.Evaluate(c)
+	return syntax.SyntaxValue{
+		Type:  syntax.Type_Bool,
+		Value: !s.val.Evaluate(c).Value.(bool),
+	}
 }
 
-func NewNotValueSyntax(val syntax.Syntax) syntax.Syntax {
+func NewNegateSyntax(val syntax.Syntax) syntax.Syntax {
 	return &negateSyntax{
 		priority: 20,
 		kind:     1,

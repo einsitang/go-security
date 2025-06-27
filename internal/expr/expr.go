@@ -22,7 +22,7 @@ const (
 	TPermission
 	TGroup
 	TLogic
-	TNot
+	TNegate
 	TCurlyOpen
 	TCurlyClose
 	TPlaceholder
@@ -42,7 +42,7 @@ type SyntaxAnalyzer interface {
 	Parse(input string) *SyntaxTree
 }
 
-func New() *syntaxAnalyzer {
+func NewAnalyzer() *syntaxAnalyzer {
 
 	_tokenizer := tokenizer.New()
 	_tokenizer.DefineTokens(TPolicy, []string{"allow", "deny", "skip"}) // Policy
@@ -51,7 +51,7 @@ func New() *syntaxAnalyzer {
 	_tokenizer.DefineTokens(TGroup, []string{"Group"})                  // 内置单元函数
 	_tokenizer.DefineTokens(TCurlyOpen, []string{"("})
 	_tokenizer.DefineTokens(TCurlyClose, []string{")"})
-	_tokenizer.DefineTokens(TNot, []string{"!"})                                     // 逻辑运算符 单元
+	_tokenizer.DefineTokens(TNegate, []string{"!"})                                  // 逻辑运算符 单元
 	_tokenizer.DefineTokens(TMath, []string{"+", "-", "/", "*", "%"})                // 运算符 双元
 	_tokenizer.DefineTokens(TComparison, []string{"<", "<=", ">=", ">", "==", "!="}) // 逻辑运算符 双元
 	_tokenizer.DefineTokens(TLogic, []string{"and", "or"})                           // 逻辑符 双元
@@ -106,7 +106,7 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Sy
 
 	for stream.IsValid() {
 		token := stream.CurrentToken()
-		fmt.Printf("[DEBUG] %d:%d %s \n", token.Line(), token.Offset(), token.ValueString())
+		// fmt.Printf("[DEBUG] %d:%d %s \n", token.Line(), token.Offset(), token.ValueString())
 
 		// 括号开辟新空间
 		// (
@@ -138,6 +138,16 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Sy
 				return nil
 			}
 			cacheOperTokens = append(cacheOperTokens, tokenDef)
+
+			// negate 补丁，因为 negate 需要确保取右值，如果按照原来的逻辑很有可能把左值赋给negate
+			if token.Key() == TNegate {
+				if !stream.NextToken().IsValid() {
+					parsePanic("! syntax without value", token, stream, input)
+					return nil
+				}
+				stream.GoNext()
+				continue
+			}
 
 		}
 
@@ -252,7 +262,6 @@ func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, inpu
 	// 后推断检查
 	// nextToken := stream.GoNext().CurrentToken()
 	nextToken := stream.NextToken()
-	fmt.Printf("[DEBUG] nextToken: %s %v \n", nextToken.ValueString(), nextToken.IsValid())
 	if nextToken.IsValid() && !expectStringValue(nextToken, []string{"and", "or", ")"}) {
 		parsePanic(fmt.Sprintf("%s(%s)\" %s only supports \"and\" and \"or\" constructions.\n", token.ValueString(), vToken.ValueString(), nextToken.ValueString()), token, stream, input)
 	}
@@ -344,6 +353,8 @@ func operSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input str
 		return oper.NewAndSyntax(nil, nil)
 	case "or":
 		return oper.NewOrSyntax(nil, nil)
+	case "!":
+		return oper.NewNegateSyntax(nil)
 	}
 
 	parsePanic("unknow oper syntax", token, stream, input)

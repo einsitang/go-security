@@ -72,6 +72,13 @@ func buildSyntaxDef(token *tokenizer.Token) (*syntaxDef, error) {
 			Kind:     2,
 			Type:     syntax.Type_Bool,
 		}, nil
+	} else if expectType(token, []tokenizer.TokenKey{TNegate}) {
+		return &syntaxDef{
+			Token:    token,
+			Priority: 20,
+			Kind:     1,
+			Type:     syntax.Type_Bool,
+		}, nil
 	}
 
 	return nil, errors.New("invalid syntax")
