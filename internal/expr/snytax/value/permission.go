@@ -60,7 +60,7 @@ func (s *permissionSyntax) ChangeRight(right syntax.Syntax) {
 func (s *permissionSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	return syntax.SyntaxValue{
 		Type:  syntax.Type_Bool,
-		Value: slices.Contains(c.Principal.Groups, s.val),
+		Value: slices.Contains(c.Principal.Permissions(), s.val),
 	}
 }
 

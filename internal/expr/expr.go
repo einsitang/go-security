@@ -30,7 +30,6 @@ const (
 
 type syntaxAnalyzer struct {
 	lexer *tokenizer.Tokenizer
-	input string
 }
 
 type SyntaxTree struct {
@@ -70,7 +69,6 @@ func NewAnalyzer() *syntaxAnalyzer {
 func (analyzer *syntaxAnalyzer) Parse(input string) *SyntaxTree {
 
 	stream := analyzer.lexer.ParseString(input)
-	analyzer.input = input
 	defer stream.Close()
 
 	var policy string

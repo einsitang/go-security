@@ -67,7 +67,7 @@ func (r *Router) Add(patterns ...string) {
 }
 
 // Match 严格匹配路由（包括路径和查询参数）
-func (r *Router) Match(fullPath string) (pattern string, params map[string]string, err error) {
+func (r *Router) Match(fullPath string) (pattern string, params map[string]any, err error) {
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	pathSegments := splitPath(pathPart)
@@ -82,7 +82,7 @@ func (r *Router) Match(fullPath string) (pattern string, params map[string]strin
 	actualQueryParams := parseActualQueryParams(queryPart)
 
 	// 创建参数映射
-	params = make(map[string]string)
+	params = make(map[string]any)
 
 	// 添加通配符参数（$0, $1, ...）
 	for i, val := range wildcardValues {

@@ -60,7 +60,7 @@ func (s *roleSyntax) ChangeRight(right syntax.Syntax) {
 func (s *roleSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	return syntax.SyntaxValue{
 		Type:  syntax.Type_Bool,
-		Value: slices.Contains(c.Principal.Roles, s.val),
+		Value: slices.Contains(c.Principal.Roles(), s.val),
 	}
 }
 

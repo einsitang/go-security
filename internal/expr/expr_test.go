@@ -6,6 +6,29 @@ import (
 	"github.com/einsitang/go-security/internal/expr/ctx"
 )
 
+type principal struct {
+	id          string
+	roles       []string
+	permissions []string
+	groups      []string
+}
+
+func (p *principal) Id() string {
+	return p.id
+}
+
+func (p *principal) Roles() []string {
+	return p.roles
+}
+
+func (p *principal) Permissions() []string {
+	return p.permissions
+}
+
+func (p *principal) Groups() []string {
+	return p.groups
+}
+
 func BenchmarkAnalyzer(b *testing.B) {
 	input := "allow:Role('admin') and !($x % 5 == 2) or (Permission('doc:data') and $category == 'guest')"
 	analyzer := NewAnalyzer()
@@ -14,8 +37,8 @@ func BenchmarkAnalyzer(b *testing.B) {
 	params["category"] = "computer"
 	params["x"] = 4
 	context := &ctx.Context{
-		Principal: &ctx.Principal{
-			Roles: []string{"admin"},
+		Principal: &principal{
+			roles: []string{"admin"},
 		},
 		Params: params,
 	}
@@ -46,8 +69,8 @@ func TestAnalyzer(t *testing.T) {
 	params["category"] = "computer"
 	params["x"] = 4
 	context := &ctx.Context{
-		Principal: &ctx.Principal{
-			Roles: []string{"admin"},
+		Principal: &principal{
+			roles: []string{"admin"},
 		},
 		Params: params,
 	}
