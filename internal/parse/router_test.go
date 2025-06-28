@@ -33,18 +33,19 @@ func BenchmarkMapping(b *testing.B) {
 func TestTree(t *testing.T) {
 	// 1. 批量创建路由树
 	patterns := []string{
-		// "/orders/*/:orderId?categoryId=:category",
-		// "/order/list?category=${category}",
-		// "/order/details",
-		// "GET /order/history",
-		// "GET /order/history/:year",
-		// "/order/*",
-		// "/users/:user/order/list?category=${category}",
-		// "/users/:user/profile",
-		// "/users/:userx/friends",
-		// "/buckets/*/files/*/date/:year/:month/:day?fileType=:fileType",
-		// "/files/images/:category",
+		"/orders/*/:orderId?categoryId=:category",
+		"/order/list?category=${category}",
+		"/order/details",
+		"/order/history",
 		"/order/history/:year",
+		"/order/*",
+		"/users/:user/order/list?category=${category}",
+		"/users/:user/profile",
+		"/users/:userx/friends",
+		"/buckets/*/files/*/date/:year/:month/:day?fileType=:fileType",
+		"/files/images/:category",
+		"/files/*",
+		"/bucket/:file",
 	}
 	router := NewRouter(patterns)
 
@@ -57,20 +58,21 @@ func TestTree(t *testing.T) {
 		path     string
 		expected string
 	}{
-		// {"/users/123/order/list?category=book", "/users/:user/order/list?category=${category}"},
-		// {"/users/456/profile", "/users/:user/profile"},
-		// {"/files/bigFile/date/2020/01/01", "/files/*/date/:year/:month/:day"},
-		// {"/buckets/huanan/files/bigFile/date/2020/01/01", "/buckets/*/files/*/date/:year/:month/:day"},
-		// {"/files/images/nature", "/files/images/:category"},
-		// {"/orders/123/456?categoryId=books", "/orders/*/:orderId?categoryId=:category"},
-		// {"/order/list?category=electronics", "/order/list?category=${category}"},
-		// {"/order/details", "/order/details"},
-		// {"/order/history", "/order/history"},
-		// {"GET /order/history/2025", "GET /order/history/:year"},
-		// {"/order/any/path", "/order/*"},
-		// {"/order/any", "/order/*"},
-		// {"/not/found", ""},
-		{"GET /order/history/2025", "/order/history/:year"},
+		{"/users/123/order/list?category=book", "/users/:user/order/list?category=${category}"},
+		{"/users/456/profile", "/users/:user/profile"},
+		{"/files/bigFile/date/2020/01/01", "/files/*/date/:year/:month/:day"},
+		{"/buckets/huanan/files/bigFile/date/2020/01/01", "/buckets/*/files/*/date/:year/:month/:day"},
+		{"/files/images/nature", "/files/images/:category"},
+		{"/orders/123/456?categoryId=books", "/orders/*/:orderId?categoryId=:category"},
+		{"/order/list?category=electronics", "/order/list?category=${category}"},
+		{"/order/details", "/order/details"},
+		{"/order/history", "/order/history"},
+		{"GET /order/history/2025", "GET /order/history/:year"},
+		{"/order/any/path", "/order/*"},
+		{"/order/any", "/order/*"},
+		{"/not/found", ""},
+		{"/files/aaa/bbb/ccc", "/files/*"},
+		{"/bucket/aaa", "/bucket/:file"},
 	}
 
 	for _, tc := range testCases {

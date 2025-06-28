@@ -455,8 +455,8 @@ func (n *node) findRoute(segments []string, params map[string]string, wildcardVa
 			wildcardValues = make([]string, 0, n.wildcardCnt)
 		}
 		// 通配符节点匹配剩余所有路径
-		// fullWildcard := strings.Join(segments, "/")
-		// wildcardValues = append(wildcardValues, fullWildcard)
+		fullWildcard := strings.Join(segments, "/")
+		wildcardValues = append(wildcardValues, fullWildcard)
 		return n.wildcard.findRoute(nil, params, wildcardValues)
 	}
 
