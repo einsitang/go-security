@@ -38,7 +38,7 @@ type SyntaxTree struct {
 }
 
 type SyntaxAnalyzer interface {
-	Parse(input string) *SyntaxTree
+	Parse(input string) (*SyntaxTree, error)
 }
 
 func NewAnalyzer() *syntaxAnalyzer {
@@ -66,7 +66,7 @@ func NewAnalyzer() *syntaxAnalyzer {
 
 }
 
-func (analyzer *syntaxAnalyzer) Parse(input string) *SyntaxTree {
+func (analyzer *syntaxAnalyzer) Parse(input string) (*SyntaxTree, error) {
 
 	stream := analyzer.lexer.ParseString(input)
 	defer stream.Close()
@@ -82,21 +82,26 @@ func (analyzer *syntaxAnalyzer) Parse(input string) *SyntaxTree {
 				// 结束
 				return &SyntaxTree{
 					Policy: policy,
-				}
+				}, nil
 			}
 			if !expectStringValue(next.CurrentToken(), []string{":"}) {
 				// 出错了,如果有后续必须是:
-				panic(fmt.Errorf("\"%s\" expect next token must \":\" or EOF", token.ValueString()))
+				return nil, fmt.Errorf("\"%s\" expect next token must \":\" or EOF", token.ValueString())
 			}
 			stream.GoNext()
-			_syntax := parseWithScope(stream, 0, input)
-			return &SyntaxTree{Policy: policy, Syntax: _syntax}
+			_syntax, err := parseWithScope(stream, 0, input)
+			if err != nil {
+				return nil, err
+			}
+			return &SyntaxTree{Policy: policy, Syntax: _syntax}, nil
 		}
+
+		return nil, parseError("express must begin with \"Policy\" like: `allow:` or `deny:` ", token, stream, input)
 	}
-	panic("解析出错")
+	return nil, parseError("there are some errors with express", stream.CurrentToken(), stream, input)
 }
 
-func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Syntax {
+func parseWithScope(stream *tokenizer.Stream, scope int, input string) (syntax.Syntax, error) {
 	// 子句 statementStack
 	syntaxStatementStack := []syntax.Syntax{}
 	// syntax def
@@ -111,11 +116,15 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Sy
 		if expectType(token, []tokenizer.TokenKey{TCurlyOpen}) {
 			// (
 			stream.GoNext()
-			syntaxStatementStack = append(syntaxStatementStack, parseWithScope(stream, scope+1, input))
+			s, err := parseWithScope(stream, scope+1, input)
+			if err != nil {
+				return nil, err
+			}
+			syntaxStatementStack = append(syntaxStatementStack, s)
 		} else if expectType(token, []tokenizer.TokenKey{TCurlyClose}) {
 			// )
 			if scope == 0 {
-				parsePanic("没有找到 \"(\" , 无法解析 \")\"", token, stream, input)
+				return nil, parseError("没有找到 \"(\" , 无法解析 \")\"", token, stream, input)
 			}
 			// 结束，合并语法树，跳出当前循环
 
@@ -125,23 +134,25 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Sy
 
 		} else if expectValueToken(token) {
 			// 值语法处理
-			_syntax := valueSyntaxParse(token, stream, input)
+			_syntax, err := valueSyntaxParse(token, stream, input)
+			if err != nil {
+				return nil, err
+			}
+
 			syntaxStatementStack = append(syntaxStatementStack, _syntax)
 		} else {
 			// 操作语法处理
 			// > >= == != < <= +-*/% and or
 			tokenDef, err := buildSyntaxDef(token)
 			if err != nil {
-				parsePanic(err.Error(), token, stream, input)
-				return nil
+				return nil, parseError(err.Error(), token, stream, input)
 			}
 			cacheOperTokens = append(cacheOperTokens, tokenDef)
 
 			// negate 补丁，因为 negate 需要确保取右值，如果按照原来的逻辑很有可能把左值赋给negate
 			if token.Key() == TNegate {
 				if !stream.NextToken().IsValid() {
-					parsePanic("! syntax without value", token, stream, input)
-					return nil
+					return nil, parseError("! syntax without value", token, stream, input)
 				}
 				stream.GoNext()
 				continue
@@ -149,29 +160,37 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) syntax.Sy
 
 		}
 
-		cacheOperTokens, syntaxStatementStack = mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
+		_cacheOperTokens, _syntaxStatementStack, err := mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
+		cacheOperTokens, syntaxStatementStack = _cacheOperTokens, _syntaxStatementStack
+		if err != nil {
+			return nil, err
+		}
 		stream.GoNext()
 	}
 
 	// 结束还有？再做一次计算
 	if len(cacheOperTokens) > 0 {
-		cacheOperTokens, syntaxStatementStack = mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
+		_cacheOperTokens, _syntaxStatementStack, err := mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
+		cacheOperTokens, syntaxStatementStack = _cacheOperTokens, _syntaxStatementStack
+		if err != nil {
+			return nil, err
+		}
 	}
 	if len(cacheOperTokens) == 0 && len(syntaxStatementStack) == 1 {
-		return syntaxStatementStack[0]
+		return syntaxStatementStack[0], nil
 	}
-	parsePanic("incorrect expression", cacheOperTokens[0].Token, stream, input)
-	return nil
+
+	return nil, parseError("incorrect expression", cacheOperTokens[0].Token, stream, input)
 }
 
-func mergeSyntax(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syntax, stream *tokenizer.Stream, input string) ([]*syntaxDef, []syntax.Syntax) {
+func mergeSyntax(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syntax, stream *tokenizer.Stream, input string) ([]*syntaxDef, []syntax.Syntax, error) {
 	for len(cacheOperTokens) != 0 {
 		// 尝试计算 cacheOperToken
 		cacheOperToken := cacheOperTokens[len(cacheOperTokens)-1]
 
 		// 解析 cacheOperToken 检查 语法的值数量要求
 		if cacheOperToken.Kind > len(syntaxStatementStack) {
-			return cacheOperTokens, syntaxStatementStack
+			return cacheOperTokens, syntaxStatementStack, nil
 		}
 		// 根据值数量从 syntaxStatemens 中获取最近(最后)入栈的语句
 		// 检查 cacheOperToken 与 语句(参数) 返回值是否一致
@@ -182,13 +201,17 @@ func mergeSyntax(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syn
 
 		}
 		if checkType == 0 {
-			return cacheOperTokens, syntaxStatementStack
+			return cacheOperTokens, syntaxStatementStack, nil
 		}
 
 		var left, right syntax.Syntax
 
 		// 初始化 cacheOperToken 为 syntax 与 参数 syntaxStatment 计算优先级合并
-		_syntax := operSyntaxParse(cacheOperToken.Token, stream, input)
+		_syntax, err := operSyntaxParse(cacheOperToken.Token, stream, input)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		switch _syntax.Kind() {
 		case 1:
 			// 没有左值 参数 / 常量
@@ -228,83 +251,79 @@ func mergeSyntax(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syn
 			}
 
 		}
-
-		// 根据优先级组合成新的 syntax statment
-		// 合并 syntaxStatement 栈
-		// syntaxStatementStack = append(syntaxStatementStack[:len(syntaxStatementStack)-cacheOperToken.Kind], _syntax)
 	}
-	return cacheOperTokens, syntaxStatementStack
+	return cacheOperTokens, syntaxStatementStack, nil
 }
 
 // 内置函数语法解析器
-func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) syntax.Syntax {
+func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 
 	curlyOpen := stream.GoNext().CurrentToken()
 	// 必须是 (
 	if !expectType(curlyOpen, []tokenizer.TokenKey{TCurlyOpen}) {
-		parsePanic(fmt.Sprintf("syntax error, %s must with \"(\"", token.ValueString()), token, stream, input)
+		return nil, parseError(fmt.Sprintf("syntax error, %s must with \"(\"", token.ValueString()), token, stream, input)
 	}
 
 	vToken := stream.GoNext().CurrentToken()
 	val := vToken.ValueString()
 	// 必须是 StringConstant
 	if !expectType(vToken, []tokenizer.TokenKey{tokenizer.TokenString}) {
-		parsePanic(fmt.Sprintf("grammatical error, you need input string. example: %s(\"something\")\n", token.ValueString()), token, stream, input)
+		return nil, parseError(fmt.Sprintf("grammatical error, you need input string. example: %s(\"something\")\n", token.ValueString()), token, stream, input)
 	}
 
 	curlyClose := stream.GoNext().CurrentToken() // 必须是 )
 	if !expectType(curlyClose, []tokenizer.TokenKey{TCurlyClose}) {
-		parsePanic(fmt.Sprintf("%s(%s 没有闭合括号\n", token.ValueString(), vToken.ValueString()), token, stream, input)
+		return nil, parseError(fmt.Sprintf("%s(%s 没有闭合括号\n", token.ValueString(), vToken.ValueString()), token, stream, input)
 	}
 
 	// 后推断检查
 	// nextToken := stream.GoNext().CurrentToken()
 	nextToken := stream.NextToken()
 	if nextToken.IsValid() && !expectStringValue(nextToken, []string{"and", "or", ")"}) {
-		parsePanic(fmt.Sprintf("%s(%s)\" %s only supports \"and\" and \"or\" constructions.\n", token.ValueString(), vToken.ValueString(), nextToken.ValueString()), token, stream, input)
+		return nil, parseError(fmt.Sprintf("%s(%s)\" %s only supports \"and\" and \"or\" constructions.\n", token.ValueString(), vToken.ValueString(), nextToken.ValueString()), token, stream, input)
 	}
 
 	tokenString := token.ValueString()
 	switch tokenString {
 	case "Role":
-		return value.NewRoleSyntax(val)
+		return value.NewRoleSyntax(val), nil
 	case "Permission":
-		return value.NewPermissionSyntax(val)
+		return value.NewPermissionSyntax(val), nil
 	case "Group":
-		return value.NewGroupSyntax(val)
+		return value.NewGroupSyntax(val), nil
 	case "Roles", "Permissions", "Groups":
-		parsePanic("暂不支持 Roles,Permissions,Groups", token, stream, input)
+		return nil, parseError("暂不支持 Roles,Permissions,Groups", token, stream, input)
 	}
-	parsePanic("无效的内置函数", token, stream, input)
-	return nil
+
+	return nil, parseError("无效的内置函数", token, stream, input)
 }
 
 // 变量解析器
-func paramSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) syntax.Syntax {
+func paramSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	strToken := stream.GoNext().CurrentToken()
 	if expectType(strToken, []tokenizer.TokenKey{tokenizer.TokenKeyword}) {
-		return value.NewParamSyntax(strToken.ValueString())
+		return value.NewParamSyntax(strToken.ValueString()), nil
 	}
-	parsePanic("错误变量表达式", token, stream, input)
-	return nil
+
+	return nil, parseError("错误变量表达式", token, stream, input)
 }
 
 // 字符串常量解析器
-func constantSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) syntax.Syntax {
+func constantSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	switch token.Key() {
 	case tokenizer.TokenString:
-		return value.NewConstantSyntax(token.ValueString())
+		return value.NewConstantSyntax(token.ValueString()), nil
 	case tokenizer.TokenInteger:
-		return value.NewConstantSyntax(token.ValueInt64())
+		return value.NewConstantSyntax(token.ValueInt64()), nil
 	case tokenizer.TokenFloat:
-		return value.NewConstantSyntax(token.ValueFloat64())
+		return value.NewConstantSyntax(token.ValueFloat64()), nil
 	}
-	parsePanic("错误常量表达式,目前仅支持字符串/数字常量", token, stream, input)
-	return nil
+
+	return nil, parseError("错误常量表达式,目前仅支持字符串/数字常量", token, stream, input)
 }
 
 // 值语句解析
-func valueSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) syntax.Syntax {
+func valueSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	if expectType(token, []tokenizer.TokenKey{tokenizer.TokenString, tokenizer.TokenInteger, tokenizer.TokenFloat}) {
 		// Constant[String|Number] / Param
 		return constantSyntaxParse(token, stream, input)
@@ -318,45 +337,43 @@ func valueSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input st
 
 	// *Array : in(...)
 
-	parsePanic("unknow value syntax", token, stream, input)
-	return nil
+	return nil, parseError("unknow value syntax", token, stream, input)
 }
 
 // 操作语句解析
-func operSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) syntax.Syntax {
+func operSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	switch token.ValueString() {
 	case "+":
-		return oper.NewAddSyntax(nil, nil)
+		return oper.NewAddSyntax(nil, nil), nil
 	case "-":
-		return oper.NewSubSyntax(nil, nil)
+		return oper.NewSubSyntax(nil, nil), nil
 	case "*":
-		return oper.NewMulSyntax(nil, nil)
+		return oper.NewMulSyntax(nil, nil), nil
 	case "/":
-		return oper.NewDivSyntax(nil, nil)
+		return oper.NewDivSyntax(nil, nil), nil
 	case "%":
-		return oper.NewModSyntax(nil, nil)
+		return oper.NewModSyntax(nil, nil), nil
 	case "==":
-		return oper.NewEqSyntax(nil, nil)
+		return oper.NewEqSyntax(nil, nil), nil
 	case "!=":
-		return oper.NewNotEqSyntax(nil, nil)
+		return oper.NewNotEqSyntax(nil, nil), nil
 	case ">":
-		return oper.NewGtSyntax(nil, nil)
+		return oper.NewGtSyntax(nil, nil), nil
 	case ">=":
-		return oper.NewGteSyntax(nil, nil)
+		return oper.NewGteSyntax(nil, nil), nil
 	case "<":
-		return oper.NewLtSyntax(nil, nil)
+		return oper.NewLtSyntax(nil, nil), nil
 	case "<=":
-		return oper.NewLteSyntax(nil, nil)
+		return oper.NewLteSyntax(nil, nil), nil
 	case "and":
-		return oper.NewAndSyntax(nil, nil)
+		return oper.NewAndSyntax(nil, nil), nil
 	case "or":
-		return oper.NewOrSyntax(nil, nil)
+		return oper.NewOrSyntax(nil, nil), nil
 	case "!":
-		return oper.NewNegateSyntax(nil)
+		return oper.NewNegateSyntax(nil), nil
 	}
 
-	parsePanic("unknow oper syntax", token, stream, input)
-	return nil
+	return nil, parseError("unknow oper syntax", token, stream, input)
 }
 
 // expectValueToken
@@ -405,13 +422,26 @@ func (l *syntaxAnalyzer) DebugTokens(input string) {
 
 }
 
-func parsePanic(msg string, token *tokenizer.Token, stream *tokenizer.Stream, input string) {
+func parseError(msg string, token *tokenizer.Token, stream *tokenizer.Stream, input string) error {
 	limitLen := len(input)
 	if limitLen > token.Offset()+25 {
 		limitLen = token.Offset() + 25
 	}
 	before := input[:token.Offset()]
 	after := input[token.Offset():limitLen]
-	errorContext := before + "﹏" + after + "..."
-	panic(fmt.Sprintf("[%d:%d] \"%s\": %s, %s", token.Line(), token.Offset(), token.ValueString(), msg, errorContext))
+	errorContext := input
+	tipsLine := tipsLine(len(before), len(after))
+	return fmt.Errorf("[%d:%d] \"%s\": %s\n%s\n%s", token.Line(), token.Offset(), token.ValueString(), msg, errorContext, tipsLine)
+}
+
+func tipsLine(offset int, after int) string {
+	line := ""
+	for i := 0; i < offset; i++ {
+		line += "-"
+	}
+	line += "^"
+	for i := 0; i < after; i++ {
+		line += "-"
+	}
+	return line
 }

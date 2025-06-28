@@ -32,7 +32,11 @@ func (p *principal) Groups() []string {
 func BenchmarkAnalyzer(b *testing.B) {
 	input := "allow:Role('admin') and !($x % 5 == 2) or (Permission('doc:data') and $category == 'guest')"
 	analyzer := NewAnalyzer()
-	syntaxTree := analyzer.Parse(input)
+	syntaxTree, err := analyzer.Parse(input)
+	if err != nil {
+		b.Fatal(err)
+		return
+	}
 	params := make(map[string]any)
 	params["category"] = "computer"
 	params["x"] = 4
@@ -56,7 +60,7 @@ func BenchmarkAnalyzer(b *testing.B) {
 func TestAnalyzer(t *testing.T) {
 	// input := "allow:(Role('admin') false Permission('doc:read'))"
 	// input := "allow:Role('admin') and $x % 5 == 3 or Permission('doc:data') and $category == 'computer'"
-	input := "allow:!Role('admin') and $x / 1 == 4 or (Permission('doc:read') and $category == 'guest')"
+	input := "allow:Role('admin') and $x / 1 == 4 or (Permission('doc:read') and $category == 'guest')"
 	// input := "allow:Role('admin') and 1+1==2 or Permission('doc:data')"
 	// input := "allow:Permission('doc:read') and $category == 'guest'"
 	// input := "allow:(1 + 1) * 4 == 18"
@@ -64,7 +68,11 @@ func TestAnalyzer(t *testing.T) {
 	t.Logf("\n%s \n", input)
 	_analyzer := NewAnalyzer()
 	// _analyzer.DebugTokens(input)
-	st := _analyzer.Parse(input)
+	st, err := _analyzer.Parse(input)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	params := make(map[string]any)
 	params["category"] = "computer"
 	params["x"] = 4

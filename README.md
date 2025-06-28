@@ -7,7 +7,7 @@ go-security 是一个专为 Go 应用程序设计的轻量级且灵活的安全�
 
 # 🚀 概述
 
-开发者可以通过简洁的语法为端点定义安全访问规则。支持动态路由参数、通配符路径以及将角色、权限和组与逻辑运算符和比较运算符相结合的复杂权限逻辑。
+开发者可以通过简洁的语法为端点定义安全访问规则。支持**动态路由参数**、**通配符路径**以及将**角色**、**权限**和**组**相结合编写易于理解的**逻辑表达式**组件。
 
 ## 端点路由 endpoint
 
@@ -80,10 +80,12 @@ deny: Group("guest") and $category == "tech"
 
 ## 使用 usage
 
-创建并实现 `Principal` 接口,用于指定 用户权限(Roles/Permissions/Groups)
+### SecurityPrincipal
+
+创建并实现 `SecurityPrincipal` 接口,用于指定权限(Roles/Permissions/Groups)信息,可以自行通过 读取文件 / 数据库 / 分布式缓存 / 内存 等一系列方式恢复
 
 ```go
-// 实现 Principal 接口
+// 实现 SecurityPrincipal 接口
 type principal struct {
     id          string
     roles       []string
@@ -108,7 +110,84 @@ func (p *principal) Groups() []string {
 }
 ```
 
-通过加载规则文件创建 `Security` 实例
+### Guard 警卫
+
+`Guard` 是 go-security 里最简单的一个概念,你可以使用 **表达式** 的方式创建一个警卫,当遇到需要做权限检查时,可以直接调用 `Guard.Check(SecurityContext)` 方法进行判断是否通行(allow)
+
+```go
+guard,err := NewGuard("allow:Role('admin') and $type == 'user'")
+if err != nil {
+    // 表达式有误
+    fmt.Printf("error: %s",err.Error())
+    return
+}
+checked := guard.Check(&SecurityContext{
+    Principal:&principal{
+        roles: []string{"admin"}
+        permissions: ...
+        groups: ...
+    },
+    Params: map[string]any{
+        "type": "user"
+    }
+})
+
+fmt.Logf("check: %v",check) // true
+```
+
+你可以将 `Guard` 单独放在每一个需要检查的代码逻辑前
+
+### Partol 巡逻队
+
+你可以通过动态添加端点(endpoint)的方式组织路由，然后使用 `Partol` 自动组织不同的警卫(`Guard`)驻守不同的端点
+
+```go
+partol, err := NewPartol()
+if err!=nil {
+    ....
+    return
+}
+// 添加端点
+partol.AddEndpoint("/api/v1/users/:uid", "allow:Permission('users.view')")
+
+// 为需要检查的用户组织权限信息
+_principal := &principal{
+    permissions: []string{"users.view"},
+}
+
+// 匹配检查
+endpoint:="GET /api/v1/users/123"
+checked, err := p.Check(endpoint, _principal)
+if err !=nil {
+    // 没匹配上路由，可以忽略pass
+    log.Println(err)
+}
+
+fmt.Logf("check: %v",checked) // true
+```
+
+使用 `WithConfig` 初始化 `Partol` 实例
+
+```go
+// 通过配置文件
+rulePath := "./rule.txt"
+p, err := NewPartol(WithConfig(rulePath))
+
+// 配置 principal 的权限信息
+_principal := &principal{
+    roles: []string{"admin"},
+}
+
+// 
+endpoint := "GET /api/v1/books?category=2"
+checked, err := p.Check(endpoint, _principal)
+if err !=nil {
+    // 没匹配上路由，可以忽略pass
+    log.Println(err)
+}
+
+fmt.Logf("check: %v",checked) // true
+```
 
 规则文件 `rule.txt` 格式:
 
@@ -116,67 +195,15 @@ func (p *principal) Groups() []string {
 
 ```
 # rule.txt
-# 忽略method
+# 忽略 method
 /api/v1/books?category=:category, allow:Role('admin') and $category == '2'
 # 仅支持 GET 或者 POST 方法
 GET/POST /api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
 ```
 
-使用 `WithConfig` 初始化 `Security` 实例
-
-```go
-// 通过配置文件
-rulePath := "./rule.txt"
-security := NewSecurity(WithConfig(rulePath))
-
-// 配置 principal 的权限信息
-_principal := &principal{
-    roles: []string{"admin"},
-}
-endpoint := "GET /api/v1/books?category=2"
-pass, err := security.Guard(endpoint, _principal)
-if err !=nil {
-    // 没匹配上路由，可以忽略pass
-    log.Println(err)
-}else{
-    if pass {
-        log.Println("放行")
-    }else{
-        log.Println("阻止")
-    }
-}
-
-```
-
-自由添加端点表达式
-
-```go
-security := NewSecurity()
-security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
-security.RegEndpoint("GET/POST /api/v1/files/:year/:month/:day/:filename", "allow:Role('admin') and $year == '2025' and $month == '05'")
-
-// 配置 principal 的权限信息
-_principal := &principal{
-    roles: []string{"admin"},
-}
-
-endpoint := "GET /api/v1/books?category=2"
-pass, err := security.Guard(endpoint, _principal)
-if err !=nil {
-    // 没匹配上路由，可以忽略pass
-    log.Println(err)
-}else{
-    if pass {
-        log.Println("放行")
-    }else{
-        log.Println("阻止")
-    }
-}
-```
-
 ## 🛠️ 集成
 
-gin-security - 计划中
+gin-security - gin中间件 (开发中)
 
 ## 💡 FAQ
 

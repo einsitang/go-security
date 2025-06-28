@@ -28,9 +28,13 @@ func (p *principal) Groups() []string {
 	return p.groups
 }
 
-func TestSecurity(t *testing.T) {
+func TestPartol(t *testing.T) {
 	rulePath := "./rule.txt"
-	security := NewSecurity(WithConfig(rulePath))
+	p, err := NewPartol(WithConfig(rulePath))
+	if err != nil {
+		panic(err)
+	}
+
 	// security.RegEndpoint("/api/v1/books?category=:category", "allow:Role('admin') and $category == '2'")
 
 	_principal := &principal{
@@ -39,9 +43,14 @@ func TestSecurity(t *testing.T) {
 	begin := time.Now()
 	endpoint := "GET /api/v1/books?category=2"
 	// endpoint := "/api/v1/files/2025/05/22"
-	pass, err := security.Guard(endpoint, _principal)
+	pass, err := p.Check(endpoint, _principal)
 	end := time.Now()
 	totalTime := end.UnixMicro() - begin.UnixMicro()
-	t.Logf("pass: %v, err: %v, total time: %v microsecond \n", pass, err, totalTime)
+	if err != nil {
+		t.Logf("error: %v \n", err)
+
+	} else {
+		t.Logf("pass: %v, total time: %v microsecond \n", pass, totalTime)
+	}
 
 }
