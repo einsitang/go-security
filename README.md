@@ -27,11 +27,13 @@ example:
 
 `/api/v1/users` 此时忽略 **method** , 当匹配时相当于通配所有 **method**
 
+`/api/v1/users` match `GET /api/v1/users` `POST /api/v1/users`
+
 ### 参数
 
 `GET /api/v1/users/:userId` // $userId
 
-样例: `GET/POST /api/v1/users/1` , $userId = 1
+样例: `GET /api/v1/users/1` , $userId = 1
 
 `GET /api/v1/books?category=:category` // $category
 
@@ -136,12 +138,14 @@ pass, err := security.Guard(endpoint, _principal)
 if err !=nil {
     // 没匹配上路由，可以忽略pass
     log.Println(err)
-}
-if pass {
-    log.Println("放行")
 }else{
-    log.Println("阻止")
+    if pass {
+        log.Println("放行")
+    }else{
+        log.Println("阻止")
+    }
 }
+
 ```
 
 自由添加端点表达式
@@ -161,11 +165,12 @@ pass, err := security.Guard(endpoint, _principal)
 if err !=nil {
     // 没匹配上路由，可以忽略pass
     log.Println(err)
-}
-if pass {
-    log.Println("放行")
 }else{
-    log.Println("阻止")
+    if pass {
+        log.Println("放行")
+    }else{
+        log.Println("阻止")
+    }
 }
 ```
 

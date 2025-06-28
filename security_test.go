@@ -42,6 +42,6 @@ func TestSecurity(t *testing.T) {
 	pass, err := security.Guard(endpoint, _principal)
 	end := time.Now()
 	totalTime := end.UnixMicro() - begin.UnixMicro()
-	t.Logf("pass: %v, err: %v, total time: %v microsecond", pass, err, totalTime)
+	t.Logf("pass: %v, err: %v, total time: %v microsecond \n", pass, err, totalTime)
 
 }

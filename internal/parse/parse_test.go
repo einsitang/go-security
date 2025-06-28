@@ -51,7 +51,7 @@ func TestParse(t *testing.T) {
 		"/files/reports/date/2023/10/15",
 		"/orders/123/456?categoryId=books",
 		"/not/matching/path",
-		"/a/hello?next=world",
+		"GET /a/hello?next=world",
 	}
 
 	fmt.Println("路由匹配测试 (Match - 严格匹配):")

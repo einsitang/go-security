@@ -2,11 +2,29 @@ package parse
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
 // Match 严格匹配路径和查询参数
 func Match(fullPath, pattern string) (bool, map[string]string, error) {
+
+	// 方法匹配检查
+	patternMethods, pattern := splitMethodAndPattern(pattern)
+	pathMethods, fullPath := splitMethodAndPattern(fullPath)
+
+	if !slices.Contains(patternMethods, "") && !slices.Contains(patternMethods, pathMethods[0]) {
+		methodCheck := false
+		for _, patternMethod := range patternMethods {
+			if strings.EqualFold(patternMethod, pathMethods[0]) {
+				methodCheck = true
+			}
+		}
+		if !methodCheck {
+			return false, nil, fmt.Errorf("method not allowed")
+		}
+	}
+
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	patternPath, patternQuery := splitPathAndQuery(pattern)
@@ -44,6 +62,23 @@ func Match(fullPath, pattern string) (bool, map[string]string, error) {
 
 // MatchPath 只匹配路径部分，忽略查询参数
 func MatchPath(fullPath, pattern string) (bool, map[string]string, error) {
+
+	// 方法匹配检查
+	patternMethods, pattern := splitMethodAndPattern(pattern)
+	pathMethods, fullPath := splitMethodAndPattern(fullPath)
+
+	if !slices.Contains(patternMethods, "") && !slices.Contains(patternMethods, pathMethods[0]) {
+		methodCheck := false
+		for _, patternMethod := range patternMethods {
+			if strings.EqualFold(patternMethod, pathMethods[0]) {
+				methodCheck = true
+			}
+		}
+		if !methodCheck {
+			return false, nil, fmt.Errorf("method not allowed")
+		}
+	}
+
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	patternPath, patternQuery := splitPathAndQuery(pattern)

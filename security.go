@@ -12,9 +12,11 @@ import (
 	"github.com/einsitang/go-security/internal/parse"
 )
 
+type SecurityPrincipal ctx.Principal
+
 type Security interface {
 	RegEndpoint(endpoint string, express string) error
-	Guard(endpoint string, principal ctx.Principal) (bool, error)
+	Guard(endpoint string, principal SecurityPrincipal) (bool, error)
 	CleanEndpoints()
 }
 
@@ -44,7 +46,7 @@ func (se *se) RegEndpoint(endpoint string, express string) error {
 	return nil
 }
 
-func (se *se) Guard(endpoint string, principal ctx.Principal) (bool, error) {
+func (se *se) Guard(endpoint string, principal SecurityPrincipal) (bool, error) {
 	pattern, params, err := se.router.Match(endpoint)
 	if err != nil {
 		return false, err
@@ -96,6 +98,10 @@ func WithConfig(configPath string) SecurityOption {
 	return func(se *se) {
 		lines := strings.Split(text, "\n")
 		for _, line := range lines {
+			if strings.HasPrefix(line, "#") {
+				// 注释行 跳过
+				continue
+			}
 			endpoint, express, ok := strings.Cut(line, ",")
 			if !ok {
 				log.Println("invalid line:", line)

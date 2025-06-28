@@ -1,2 +1,4 @@
+# 忽略method
 /api/v1/books?category=:category, allow:Role('admin') and $category == '2'
-/api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
+# 仅支持 GET 或者 POST 方法
+GET/POST /api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
