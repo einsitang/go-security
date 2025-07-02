@@ -144,7 +144,7 @@ func WithConfig(configPath string) PortalOption {
 			endpoint, express, ok := strings.Cut(line, ",")
 			if !ok {
 				log.Println("invalid line:", line)
-				continue
+				return err
 			}
 			err := p.AddEndpoint(endpoint, express)
 			if err != nil {

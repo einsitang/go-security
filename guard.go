@@ -3,6 +3,7 @@ package security
 import (
 	"github.com/einsitang/go-security/internal/expr"
 	"github.com/einsitang/go-security/internal/expr/ctx"
+	syntax "github.com/einsitang/go-security/internal/expr/snytax"
 )
 
 var analyzer = expr.NewAnalyzer()
@@ -23,12 +24,16 @@ func (g *guard) Express() string {
 
 func (g *guard) Check(context *SecurityContext) bool {
 	st := g.syntaxTree
-	eval := st.Syntax.Evaluate((*ctx.Context)(context)).Value.(bool)
+	eval := st.Syntax.Evaluate((*ctx.Context)(context))
+	if eval.Type != syntax.Type_Bool {
+		return false
+	}
+	checked := eval.Value.(bool)
 	policy := st.Policy
 	if policy == "allow" {
-		return eval
+		return checked
 	}
-	return !eval
+	return !checked
 }
 
 func NewGuard(express string) (Guard, error) {

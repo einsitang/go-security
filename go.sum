@@ -1,7 +1,7 @@
-github.com/bzick/tokenizer v1.4.10 h1:/kHgB4Z3v7cB7tQOeCYyl+PmQay7LPh8cvVoJrp7Jx4=
-github.com/bzick/tokenizer v1.4.10/go.mod h1:HYrKg9GGNb0/MCf7eGmz6ulvsxFfgyN+Ve3MqV2h5Zs=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/einsitang/tokenizer v0.0.0-20250630113906-547b4ffb49cd h1:z/DfR4Reop74P06p38+L6AY5mE7UKoRCY6dK14cDNgM=
+github.com/einsitang/tokenizer v0.0.0-20250630113906-547b4ffb49cd/go.mod h1:HYrKg9GGNb0/MCf7eGmz6ulvsxFfgyN+Ve3MqV2h5Zs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
