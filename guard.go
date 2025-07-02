@@ -1,6 +1,9 @@
 package security
 
 import (
+	"log"
+	"reflect"
+
 	"github.com/einsitang/go-security/internal/expr"
 	"github.com/einsitang/go-security/internal/expr/ctx"
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
@@ -26,6 +29,7 @@ func (g *guard) Check(context *SecurityContext) bool {
 	st := g.syntaxTree
 	eval := st.Syntax.Evaluate((*ctx.Context)(context))
 	if eval.Type != syntax.Type_Bool {
+		log.Printf("[warnning]evaluate return value not type bool , result.type:%v , result.value:%v \n", reflect.TypeOf(eval.Type).String(), eval.Value)
 		return false
 	}
 	checked := eval.Value.(bool)

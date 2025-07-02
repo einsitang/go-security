@@ -3,7 +3,6 @@ package security
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -58,6 +57,7 @@ func (p *partol) AddEndpoint(endpoint string, express string) error {
 
 		guard, err := NewGuard(express)
 		if err != nil {
+			fmt.Println("here")
 			return err
 		}
 
@@ -136,15 +136,14 @@ func WithConfig(configPath string) PortalOption {
 
 	return func(p *partol) error {
 		lines := strings.Split(text, "\n")
-		for _, line := range lines {
+		for lineIndex, line := range lines {
 			if strings.HasPrefix(line, "#") {
 				// 注释行 跳过
 				continue
 			}
 			endpoint, express, ok := strings.Cut(line, ",")
 			if !ok {
-				log.Println("invalid line:", line)
-				return err
+				return fmt.Errorf("\"%s\" -> invalid line[#%d]: \"%s\"", configPath, lineIndex, line)
 			}
 			err := p.AddEndpoint(endpoint, express)
 			if err != nil {
