@@ -149,6 +149,7 @@ if err!=nil {
 }
 // 添加端点
 partol.AddEndpoint("/api/v1/users/:uid", "allow:Permission('users.view')")
+partol.AddEndpoint("/api/v1/orders?category=:category", "allow:Permission('users.view') or $category=='book'")
 
 // 为需要检查的用户组织权限信息
 _principal := &principal{
@@ -200,6 +201,18 @@ fmt.Logf("check: %v",checked) // true
 # 仅支持 GET 或者 POST 方法
 GET/POST /api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
 ```
+
+#### 严格匹配检查 StrictCheck
+
+p.StrictCheck(endpoint, _principal)
+
+`/api/v1/orders?category=:category` 会严格匹配到 query 参数 (* /api/v1/orders?category=:category)
+
+p.Check(endpoint, _principal)
+
+``/api/v1/orders?category=:category` 仅会匹配到 method 与 path (* /api/v1/orders)
+
+> 严格匹配检查仅影响路由命中，不影响命中后的参数读取
 
 ## 🛠️ 集成
 

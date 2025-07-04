@@ -24,7 +24,9 @@ type Partol interface {
 	// 如果该端点命中规则表达式，则返回 true,nil , 否则返回 false,nil
 	//
 	// 如果出现error,则表示该端点没有建立规则，默认放行
+	check(endpoint string, principal SecurityPrincipal, strict bool) (pass bool, err error)
 	Check(endpoint string, principal SecurityPrincipal) (pass bool, err error)
+	StrictCheck(endpoint string, principal SecurityPrincipal) (pass bool, err error)
 
 	// 清空所有检查端点
 	CleanEndpoints()
@@ -67,7 +69,21 @@ func (p *partol) AddEndpoint(endpoint string, express string) error {
 }
 
 func (p *partol) Check(endpoint string, principal SecurityPrincipal) (bool, error) {
-	pattern, params, err := p.router.Match(endpoint)
+	return p.check(endpoint, principal, false)
+}
+
+func (p *partol) StrictCheck(endpoint string, principal SecurityPrincipal) (bool, error) {
+	return p.check(endpoint, principal, true)
+}
+
+func (p *partol) check(endpoint string, principal SecurityPrincipal, strict bool) (bool, error) {
+	var matchFn func(endpoint string) (pattern string, params map[string]any, err error)
+	if strict {
+		matchFn = p.router.Match
+	} else {
+		matchFn = p.router.MatchPath
+	}
+	pattern, params, err := matchFn(endpoint)
 	if err != nil {
 		return false, err
 	}

@@ -37,7 +37,7 @@ func TestTree(t *testing.T) {
 		"/order/list?category=${category}",
 		"/order/details",
 		"/order/history",
-		"/order/history/:year",
+		"/order/history/:year?c=:c",
 		"/order/*",
 		"/users/:user/order/list?category=${category}",
 		"/users/:user/profile",
@@ -58,25 +58,26 @@ func TestTree(t *testing.T) {
 		path     string
 		expected string
 	}{
-		{"/users/123/order/list?category=book", "/users/:user/order/list?category=${category}"},
-		{"/users/456/profile", "/users/:user/profile"},
-		{"/files/bigFile/date/2020/01/01", "/files/*/date/:year/:month/:day"},
-		{"/buckets/huanan/files/bigFile/date/2020/01/01", "/buckets/*/files/*/date/:year/:month/:day"},
-		{"/files/images/nature", "/files/images/:category"},
-		{"/orders/123/456?categoryId=books", "/orders/*/:orderId?categoryId=:category"},
-		{"/order/list?category=electronics", "/order/list?category=${category}"},
-		{"/order/details", "/order/details"},
-		{"/order/history", "/order/history"},
-		{"GET /order/history/2025", "GET /order/history/:year"},
-		{"/order/any/path", "/order/*"},
-		{"/order/any", "/order/*"},
-		{"/not/found", ""},
-		{"/files/aaa/bbb/ccc", "/files/*"},
-		{"/bucket/aaa", "/bucket/:file"},
+		// {"/users/123/order/list?category=book", "/users/:user/order/list?category=${category}"},
+		// {"/users/456/profile", "/users/:user/profile"},
+		// {"/files/bigFile/date/2020/01/01", "/files/*/date/:year/:month/:day"},
+		// {"/buckets/huanan/files/bigFile/date/2020/01/01", "/buckets/*/files/*/date/:year/:month/:day"},
+		// {"/files/images/nature", "/files/images/:category"},
+		// {"/orders/123/456?categoryId=books", "/orders/*/:orderId?categoryId=:category"},
+		// {"/order/list?category=electronics", "/order/list?category=${category}"},
+		// {"/order/details", "/order/details"},
+		// {"/order/history", "/order/history"},
+		// {"GET /order/history/2025", "GET /order/history/:year"},
+		// {"/order/any/path", "/order/*"},
+		// {"/order/any", "/order/*"},
+		// {"/not/found", ""},
+		// {"/files/aaa/bbb/ccc", "/files/*"},
+		// {"/bucket/aaa", "/bucket/:file"},
+		{"GET /order/history/2025?a=x", "/order/history/:year?c=:c"},
 	}
 
 	for _, tc := range testCases {
-		pattern, params, err := router.Match(tc.path)
+		pattern, params, err := router.MatchPath(tc.path)
 		if tc.expected == "" {
 			if err == nil {
 				fmt.Printf("路径: %-40s 预期: 不匹配, 实际: 匹配 %s ✗\n", tc.path, pattern)

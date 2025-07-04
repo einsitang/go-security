@@ -148,7 +148,7 @@ func (r *Router) Match(endpoint string) (pattern string, params map[string]any, 
 	return pattern, params, err
 }
 
-func (r *Router) matchPath(method string, fullPath string) (pattern string, params map[string]string, err error) {
+func (r *Router) matchPath(method string, fullPath string) (pattern string, params map[string]any, err error) {
 
 	root, ok := r.roots[method]
 	if !ok {
@@ -169,7 +169,7 @@ func (r *Router) matchPath(method string, fullPath string) (pattern string, para
 	actualQueryParams := parseActualQueryParams(queryPart)
 
 	// 创建参数映射
-	params = make(map[string]string)
+	params = make(map[string]any)
 
 	// 添加通配符参数（$0, $1, ...）
 	for i, val := range wildcardValues {
@@ -191,7 +191,7 @@ func (r *Router) matchPath(method string, fullPath string) (pattern string, para
 }
 
 // MatchPath 只匹配路径部分，忽略查询参数匹配
-func (r *Router) MatchPath(endpoint string) (pattern string, params map[string]string, err error) {
+func (r *Router) MatchPath(endpoint string) (pattern string, params map[string]any, err error) {
 
 	methods, fullPath := splitMethodAndPattern(endpoint)
 	method := strings.ToUpper(methods[0])

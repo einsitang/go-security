@@ -209,6 +209,20 @@ Rule file [rule.txt](file:///Users/einsitang/github/sevlow/go-security/rule.txt)
 GET/POST /api/v1/files/:year/:month/:day/:filename, allow:Role('admin') and $year == '2025' and $month == '05'
 ```
 
+#### Strict Check
+
+p.StrictCheck(endpoint, _principal)
+
+`/api/v1/orders?category=:category` will strictly match query parameters (* /api/v1/orders?category=:category)
+
+
+
+p.Check(endpoint, _principal)
+
+`/api/v1/orders?category=:category` will only match method and path (* /api/v1/orders)
+
+> Strict matching only affects route matching, not parameter extraction after a match
+
 ---
 
 ## 🛠️ Integrations
