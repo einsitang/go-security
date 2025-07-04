@@ -51,6 +51,8 @@ func InferType(val any) int {
 		t = Type_String
 	case int, int64, float32, float64:
 		t = Type_Number
+	case bool:
+		t = Type_Bool
 	}
 	return t
 }

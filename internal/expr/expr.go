@@ -26,6 +26,7 @@ const (
 	TCurlyOpen
 	TCurlyClose
 	TPlaceholder
+	TCustomParam
 )
 
 type syntaxAnalyzer struct {
@@ -58,6 +59,7 @@ func NewAnalyzer() *syntaxAnalyzer {
 	_tokenizer.DefineStringToken(TDoubleQuoted, `"`, `"`)
 	_tokenizer.DefineStringToken(TSignleQuoted, `'`, `'`)
 	_tokenizer.DefineTokens(TPlaceholder, []string{"$"})
+	_tokenizer.DefineTokens(TCustomParam, []string{"#"})
 	_tokenizer.AllowKeywordSymbols(tokenizer.Underscore, tokenizer.Numbers)
 
 	return &syntaxAnalyzer{
@@ -298,13 +300,21 @@ func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, inpu
 	return nil, parseError("无效的内置函数", token, stream, input)
 }
 
-// 变量解析器
-func paramSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
+// 占位符变量解析器
+func placeholderSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	strToken := stream.GoNext().CurrentToken()
 	if expectType(strToken, []tokenizer.TokenKey{tokenizer.TokenKeyword}) {
-		return value.NewParamSyntax(strToken.ValueString()), nil
+		return value.NewParamSyntax(strToken.ValueString(), true), nil
 	}
+	return nil, parseError("错误变量表达式", token, stream, input)
+}
 
+// 自定义变量解析器
+func customParamSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
+	strToken := stream.GoNext().CurrentToken()
+	if expectType(strToken, []tokenizer.TokenKey{tokenizer.TokenKeyword}) {
+		return value.NewParamSyntax(strToken.ValueString(), false), nil
+	}
 	return nil, parseError("错误变量表达式", token, stream, input)
 }
 
@@ -328,7 +338,9 @@ func valueSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input st
 		// Constant[String|Number] / Param
 		return constantSyntaxParse(token, stream, input)
 	} else if expectType(token, []tokenizer.TokenKey{TPlaceholder}) {
-		return paramSyntaxParse(token, stream, input)
+		return placeholderSyntaxParse(token, stream, input)
+	} else if expectType(token, []tokenizer.TokenKey{TCustomParam}) {
+		return customParamSyntaxParse(token, stream, input)
 	} else if expectType(token, []tokenizer.TokenKey{TRole, TPermission, TGroup}) {
 		// Role/Permission/Group
 		return builtinFunctionParse(token, stream, input)
@@ -380,7 +392,7 @@ func operSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input str
 // 检查当前token值 是否属于 "值Token" (ValueToken)
 func expectValueToken(token *tokenizer.Token) bool {
 	switch token.Key() {
-	case TRole, TPermission, TGroup, tokenizer.TokenString, TPlaceholder, tokenizer.TokenFloat, tokenizer.TokenInteger:
+	case TRole, TPermission, TGroup, tokenizer.TokenString, TPlaceholder, TCustomParam, tokenizer.TokenFloat, tokenizer.TokenInteger:
 		return true
 	}
 

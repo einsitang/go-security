@@ -6,9 +6,11 @@ import (
 )
 
 type paramSyntax struct {
-	val      string
-	priority int
-	kind     int
+	// 占位符 or 自定义参数
+	isPlaceholder bool
+	val           string
+	priority      int
+	kind          int
 }
 
 // 语句优先级
@@ -50,18 +52,24 @@ func (s *paramSyntax) ChangeRight(right syntax.Syntax) {
 // 运行求值
 func (s *paramSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 
-	v := c.Params[s.val]
+	var v any
+	if s.isPlaceholder {
+		v = c.Params[s.val]
+	} else {
+		v = c.CustomParams[s.val]
+	}
 
 	return syntax.SyntaxValue{
-		Type:  syntax.Type_Bool,
+		Type:  syntax.InferType(v),
 		Value: v,
 	}
 }
 
-func NewParamSyntax(val string) syntax.Syntax {
+func NewParamSyntax(val string, isPlaceholder bool) syntax.Syntax {
 	return &paramSyntax{
-		val:      val,
-		kind:     0,
-		priority: 100,
+		isPlaceholder: isPlaceholder,
+		val:           val,
+		kind:          0,
+		priority:      100,
 	}
 }
