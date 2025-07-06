@@ -59,8 +59,9 @@ func (s *groupSyntax) ChangeRight(right syntax.Syntax) {
 // 运行求值
 func (s *groupSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	return syntax.SyntaxValue{
-		Type:  syntax.Type_Bool,
-		Value: slices.Contains(c.Principal.Groups(), s.val),
+		Type:    syntax.Type_Bool,
+		Value:   slices.Contains(c.Principal.Groups(), s.val),
+		IsError: false,
 	}
 }
 

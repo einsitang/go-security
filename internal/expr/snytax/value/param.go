@@ -60,8 +60,9 @@ func (s *paramSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	}
 
 	return syntax.SyntaxValue{
-		Type:  syntax.InferType(v),
-		Value: v,
+		Type:    syntax.InferType(v),
+		Value:   v,
+		IsError: false,
 	}
 }
 

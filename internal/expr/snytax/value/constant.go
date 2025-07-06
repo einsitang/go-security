@@ -49,8 +49,9 @@ func (s *constantSyntax) ChangeRight(right syntax.Syntax) {
 func (s *constantSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	t := syntax.InferType(s.val)
 	return syntax.SyntaxValue{
-		Type:  t,
-		Value: s.val,
+		Type:    t,
+		Value:   s.val,
+		IsError: false,
 	}
 }
 

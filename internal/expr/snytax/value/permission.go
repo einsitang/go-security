@@ -59,8 +59,9 @@ func (s *permissionSyntax) ChangeRight(right syntax.Syntax) {
 // 运行求值
 func (s *permissionSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	return syntax.SyntaxValue{
-		Type:  syntax.Type_Bool,
-		Value: slices.Contains(c.Principal.Permissions(), s.val),
+		Type:    syntax.Type_Bool,
+		Value:   slices.Contains(c.Principal.Permissions(), s.val),
+		IsError: false,
 	}
 }
 

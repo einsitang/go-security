@@ -47,6 +47,13 @@ func (s *negateSyntax) ReturnType() int {
 
 // 运行求值
 func (s *negateSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
+	evalV := s.val.Evaluate(c)
+	if evalV.IsError {
+		return syntax.SyntaxValue{
+			IsError: true,
+			Error:   evalV.Error,
+		}
+	}
 	return syntax.SyntaxValue{
 		Type:  syntax.Type_Bool,
 		Value: !s.val.Evaluate(c).Value.(bool),

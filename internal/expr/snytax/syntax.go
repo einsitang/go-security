@@ -9,8 +9,14 @@ const (
 )
 
 type SyntaxValue struct {
-	Type  int
+	// 类型
+	Type int
+	// 值
 	Value any
+	// 是否错误
+	IsError bool
+	// 错误类型
+	Error error
 }
 
 type Syntax interface {

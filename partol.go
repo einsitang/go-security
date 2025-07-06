@@ -109,7 +109,7 @@ func (p *partol) check(endpoint string, principal SecurityPrincipal, strict bool
 	return guard.Check(&SecurityContext{
 		Params:    params,
 		Principal: principal,
-	}), nil
+	})
 }
 
 func (p *partol) CleanEndpoints() {

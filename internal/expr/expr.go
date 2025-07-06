@@ -144,117 +144,74 @@ func parseWithScope(stream *tokenizer.Stream, scope int, input string) (syntax.S
 			syntaxStatementStack = append(syntaxStatementStack, _syntax)
 		} else {
 			// 操作语法处理
-			// > >= == != < <= +-*/% and or
+			// > >= == != < <= +-*/% and or !
 			tokenDef, err := buildSyntaxDef(token)
 			if err != nil {
 				return nil, parseError(err.Error(), token, stream, input)
 			}
 			cacheOperTokens = append(cacheOperTokens, tokenDef)
-
-			// negate 补丁，因为 negate 需要确保取右值，如果按照原来的逻辑很有可能把左值赋给negate
-			if token.Key() == TNegate {
-				if !stream.NextToken().IsValid() {
-					return nil, parseError("! syntax without value", token, stream, input)
-				}
-				stream.GoNext()
-				continue
-			}
-
-		}
-
-		_cacheOperTokens, _syntaxStatementStack, err := mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
-		cacheOperTokens, syntaxStatementStack = _cacheOperTokens, _syntaxStatementStack
-		if err != nil {
-			return nil, err
 		}
 		stream.GoNext()
 	}
+	// 聚合解析 cacheOperTokens 与 syntaxStatementStack
+	return mergeAnalysis(cacheOperTokens, syntaxStatementStack, stream, input)
+}
 
-	// 结束还有？再做一次计算
-	if len(cacheOperTokens) > 0 {
-		_cacheOperTokens, _syntaxStatementStack, err := mergeSyntax(cacheOperTokens, syntaxStatementStack, stream, input)
-		cacheOperTokens, syntaxStatementStack = _cacheOperTokens, _syntaxStatementStack
+func pickPriorityOperToken(cacheOperTokens []*syntaxDef) (int, *syntaxDef) {
+	var operTokenPosition int
+	var currentOperToken *syntaxDef
+	for i, tokenDef := range cacheOperTokens {
+		if currentOperToken == nil {
+			currentOperToken = tokenDef
+			operTokenPosition = i
+		} else {
+			if currentOperToken.Priority > tokenDef.Priority {
+				currentOperToken = tokenDef
+				operTokenPosition = i
+			}
+		}
+	}
+	return operTokenPosition, currentOperToken
+}
+func mergeAnalysis(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syntax, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
+
+	for len(cacheOperTokens) > 0 {
+		operPosition, operToken := pickPriorityOperToken(cacheOperTokens)
+
+		_syntax, err := operSyntaxParse(operToken.Token, stream, input)
 		if err != nil {
 			return nil, err
 		}
-	}
-	if len(cacheOperTokens) == 0 && len(syntaxStatementStack) == 1 {
-		return syntaxStatementStack[0], nil
-	}
 
-	return nil, parseError("incorrect expression", cacheOperTokens[0].Token, stream, input)
-}
-
-func mergeSyntax(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.Syntax, stream *tokenizer.Stream, input string) ([]*syntaxDef, []syntax.Syntax, error) {
-	for len(cacheOperTokens) != 0 {
-		// 尝试计算 cacheOperToken
-		cacheOperToken := cacheOperTokens[len(cacheOperTokens)-1]
-
-		// 解析 cacheOperToken 检查 语法的值数量要求
-		if cacheOperToken.Kind > len(syntaxStatementStack) {
-			return cacheOperTokens, syntaxStatementStack, nil
-		}
-		// 根据值数量从 syntaxStatemens 中获取最近(最后)入栈的语句
-		// 检查 cacheOperToken 与 语句(参数) 返回值是否一致
-		checkType := cacheOperToken.Type
-		syntaxArgs := syntaxStatementStack[len(syntaxStatementStack)-cacheOperToken.Kind:]
-		for _, syntaxArg := range syntaxArgs {
-			checkType &= syntaxArg.ReturnType()
-
-		}
-		if checkType == 0 {
-			return cacheOperTokens, syntaxStatementStack, nil
-		}
-
-		var left, right syntax.Syntax
-
-		// 初始化 cacheOperToken 为 syntax 与 参数 syntaxStatment 计算优先级合并
-		_syntax, err := operSyntaxParse(cacheOperToken.Token, stream, input)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		switch _syntax.Kind() {
+		switch operToken.Kind {
 		case 1:
-			// 没有左值 参数 / 常量
-			left = syntaxArgs[0]
-			_syntax.ChangeLeft(left)
-			cacheOperTokens = cacheOperTokens[:len(cacheOperTokens)-1]
-			syntaxStatementStack = append(syntaxStatementStack[:len(syntaxStatementStack)-cacheOperToken.Kind], _syntax)
-		case 2:
-			// 左右值 可能是逻辑/比较/数学运算符
-			// 需要考虑其优先级(特别是数学运算符)
-
-			left = syntaxArgs[0]
-			right = syntaxArgs[1]
-
-			if left.Kind() == 2 {
-				//
-				if left.Priority() > _syntax.Priority()+5 {
-					// 优先级高
-					_syntax.ChangeLeft(left.Right())
-					_syntax.ChangeRight(right)
-					left.ChangeRight(_syntax)
-					_syntax = left
-					cacheOperTokens = cacheOperTokens[:len(cacheOperTokens)-1]
-					syntaxStatementStack = append(syntaxStatementStack[:len(syntaxStatementStack)-cacheOperToken.Kind], _syntax)
-				} else {
-					// 优先级低
-					_syntax.ChangeLeft(left)
-					_syntax.ChangeRight(right)
-					cacheOperTokens = cacheOperTokens[:len(cacheOperTokens)-1]
-					syntaxStatementStack = append(syntaxStatementStack[:len(syntaxStatementStack)-cacheOperToken.Kind], _syntax)
-				}
-			} else {
-				_syntax.ChangeLeft(left)
-				_syntax.ChangeRight(right)
-				cacheOperTokens = cacheOperTokens[:len(cacheOperTokens)-1]
-				syntaxStatementStack = append(syntaxStatementStack[:len(syntaxStatementStack)-cacheOperToken.Kind], _syntax)
+			// 单元
+			v := syntaxStatementStack[operPosition]
+			if v.ReturnType()&_syntax.InputType() == 0 {
+				return nil, parseError("mismatched types", operToken.Token, stream, input)
 			}
+			_syntax.ChangeLeft(v)
 
+			syntaxStatementStack[operPosition] = _syntax
+
+		case 2:
+			// 双元
+			left := syntaxStatementStack[operPosition]
+			right := syntaxStatementStack[operPosition+1]
+			if left.ReturnType()&right.ReturnType()&_syntax.InputType() == 0 {
+				return nil, parseError("mismatched types", operToken.Token, stream, input)
+			}
+			_syntax.ChangeLeft(left)
+			_syntax.ChangeRight(right)
+			_n := append(syntaxStatementStack[:operPosition], _syntax)
+			_n = append(_n, syntaxStatementStack[operPosition+2:]...)
+			syntaxStatementStack = _n
 		}
+		cacheOperTokens = append(cacheOperTokens[:operPosition], cacheOperTokens[operPosition+1:]...)
 	}
-	return cacheOperTokens, syntaxStatementStack, nil
+
+	return syntaxStatementStack[0], nil
+
 }
 
 // 内置函数语法解析器
@@ -329,7 +286,7 @@ func constantSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input
 		return value.NewConstantSyntax(token.ValueFloat64()), nil
 	}
 
-	return nil, parseError("错误常量表达式,目前仅支持字符串/数字常量", token, stream, input)
+	return nil, parseError("错误常量表达式,目前仅支持 字符串 / 数字 / 布尔 常量", token, stream, input)
 }
 
 // 值语句解析

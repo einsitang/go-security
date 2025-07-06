@@ -58,7 +58,7 @@ func BenchmarkAnalyzer(b *testing.B) {
 }
 
 func TestAnalyzer(t *testing.T) {
-	// input := "allow:(Role('admin') false Permission('doc:read'))"
+	// input := "allow:(Role('admin') and Permission('doc:read'))"
 	// input := "allow:Role('admin') and $x % 5 == 3 or Permission('doc:data') and $category == 'computer'"
 	input := "allow:Role('admin') and $x / 2 == 4 or ( Permission('doc:read') and $ category == 'guest')"
 	// input := "allow:Role('admin') and 1+1==2 or Permission('doc:data')"
