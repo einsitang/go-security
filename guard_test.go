@@ -41,7 +41,7 @@ func TestGuard(t *testing.T) {
 		},
 		Params: map[string]any{
 			"type": "user",
-			"age":  "19A",
+			"age":  "19",
 		},
 	})
 
