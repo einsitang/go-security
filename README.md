@@ -137,19 +137,19 @@ fmt.Logf("check: %v",check) // true
 
 你可以将 `Guard` 单独放在每一个需要检查的代码逻辑前
 
-### Sentinal 哨兵
+### Sentinel 哨兵
 
-你可以通过动态添加端点(endpoint)的方式组织路由，然后使用 `Sentinal` 自动组织不同的警卫(`Guard`)驻守不同的端点
+你可以通过动态添加端点(endpoint)的方式组织路由，然后使用 `Sentinel` 自动组织不同的警卫(`Guard`)驻守不同的端点
 
 ```go
-sentinal, err := NewSentinal()
+sentinel, err := NewSentinal()
 if err!=nil {
     ....
     return
 }
 // 添加端点
-sentinal.AddEndpoint("/api/v1/users/:uid", "allow:Permission('users.view')")
-sentinal.AddEndpoint("/api/v1/orders?category=:category", "allow:Permission('users.view') or $category=='book'")
+sentinel.AddEndpoint("/api/v1/users/:uid", "allow:Permission('users.view')")
+sentinel.AddEndpoint("/api/v1/orders?category=:category", "allow:Permission('users.view') or $category=='book'")
 
 // 为需要检查的用户组织权限信息
 _principal := &principal{
@@ -158,7 +158,7 @@ _principal := &principal{
 
 // 匹配检查
 endpoint:="GET /api/v1/users/123"
-checked, err := sentinal.Check(endpoint, _principal)
+checked, err := sentinel.Check(endpoint, _principal)
 if err !=nil {
     // show error
     log.Println(err)
@@ -174,7 +174,7 @@ if err !=nil {
 ```go
 // 通过配置文件
 rulePath := "./rule.txt"
-sentinal, err := NewSentinal(WithConfig(rulePath))
+sentinel, err := NewSentinel(WithConfig(rulePath))
 
 // 配置 principal 的权限信息
 _principal := &principal{
@@ -183,7 +183,7 @@ _principal := &principal{
 
 // 
 endpoint := "GET /api/v1/books?category=2"
-checked, err := sentinal.Check(endpoint, _principal)
+checked, err := sentinel.Check(endpoint, _principal)
 if err !=nil {
     // show error
     log.Println(err)
