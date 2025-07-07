@@ -11,7 +11,7 @@ func BenchmarkGuard(b *testing.B) {
 
 	var checked bool
 	for i := 0; i < b.N; i++ {
-		checked, _ = guard.Check(&SecurityContext{
+		checked, err = guard.Check(&SecurityContext{
 			Principal: &principal{
 				roles: []string{"admin"},
 			},

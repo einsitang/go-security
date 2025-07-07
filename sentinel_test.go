@@ -53,7 +53,7 @@ func TestTokenizeParse(t *testing.T) {
 
 func TestPartol(t *testing.T) {
 	rulePath := "./rule.txt"
-	p, err := NewPartol(WithConfig(rulePath))
+	p, err := NewSentinel(WithConfig(rulePath))
 	if err != nil {
 		panic(err)
 	}

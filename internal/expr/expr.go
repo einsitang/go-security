@@ -45,10 +45,10 @@ type SyntaxAnalyzer interface {
 func NewAnalyzer() *syntaxAnalyzer {
 
 	_tokenizer := tokenizer.New()
-	_tokenizer.DefineTokens(TPolicy, []string{"allow", "deny", "skip"}) // Policy
-	_tokenizer.DefineTokens(TRole, []string{"Role"})                    // 内置单元函数
-	_tokenizer.DefineTokens(TPermission, []string{"Permission"})        // 内置单元函数
-	_tokenizer.DefineTokens(TGroup, []string{"Group"})                  // 内置单元函数
+	_tokenizer.DefineTokens(TPolicy, []string{"allow", "deny"})                              // Policy
+	_tokenizer.DefineTokens(TRole, []string{"Role"}, tokenizer.AloneTokenOption)             // 内置单元函数
+	_tokenizer.DefineTokens(TPermission, []string{"Permission"}, tokenizer.AloneTokenOption) // 内置单元函数
+	_tokenizer.DefineTokens(TGroup, []string{"Group"}, tokenizer.AloneTokenOption)           // 内置单元函数
 	_tokenizer.DefineTokens(TCurlyOpen, []string{"("})
 	_tokenizer.DefineTokens(TCurlyClose, []string{")"})
 	_tokenizer.DefineTokens(TNegate, []string{"!"})                                  // 逻辑运算符 单元

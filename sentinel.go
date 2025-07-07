@@ -13,7 +13,10 @@ import (
 type SecurityPrincipal ctx.Principal
 type SecurityContext ctx.Context
 
-type Partol interface {
+// 哨兵
+//
+// 看守全局路由的哨兵模式
+type Sentinel interface {
 	// 添加检查端点
 	//
 	// endpoint: 端点； express: 检查表达式
@@ -25,19 +28,31 @@ type Partol interface {
 	//
 	// 如果出现error,则表示该端点没有建立规则，默认放行
 	check(endpoint string, principal SecurityPrincipal, strict bool) (pass bool, err error)
+
+	// 检查 用户(principal) 在端点(endpoint) 内是否符合通行规则
+	//
+	// 端点匹配时不检查QueryParams参数
+	//
+	// see check method
 	Check(endpoint string, principal SecurityPrincipal) (pass bool, err error)
+
+	// 检查 用户(principal) 在端点(endpoint) 内是否符合通行规则
+	//
+	// 端点匹配时严格检查QueryParams参数
+	//
+	// see check method
 	StrictCheck(endpoint string, principal SecurityPrincipal) (pass bool, err error)
 
 	// 清空所有检查端点
 	CleanEndpoints()
 }
 
-type partol struct {
+type sentinel struct {
 	router *parse.Router
 	guards map[string]Guard
 }
 
-func (p *partol) AddEndpoint(endpoint string, express string) error {
+func (p *sentinel) AddEndpoint(endpoint string, express string) error {
 
 	p.router.Add(endpoint)
 
@@ -68,15 +83,15 @@ func (p *partol) AddEndpoint(endpoint string, express string) error {
 	return nil
 }
 
-func (p *partol) Check(endpoint string, principal SecurityPrincipal) (bool, error) {
+func (p *sentinel) Check(endpoint string, principal SecurityPrincipal) (bool, error) {
 	return p.check(endpoint, principal, false)
 }
 
-func (p *partol) StrictCheck(endpoint string, principal SecurityPrincipal) (bool, error) {
+func (p *sentinel) StrictCheck(endpoint string, principal SecurityPrincipal) (bool, error) {
 	return p.check(endpoint, principal, true)
 }
 
-func (p *partol) check(endpoint string, principal SecurityPrincipal, strict bool) (bool, error) {
+func (p *sentinel) check(endpoint string, principal SecurityPrincipal, strict bool) (bool, error) {
 	var matchFn func(endpoint string) (pattern string, params map[string]any, err error)
 	if strict {
 		matchFn = p.router.Match
@@ -112,14 +127,14 @@ func (p *partol) check(endpoint string, principal SecurityPrincipal, strict bool
 	})
 }
 
-func (p *partol) CleanEndpoints() {
+func (p *sentinel) CleanEndpoints() {
 	p.router = parse.NewRouter([]string{})
 	p.guards = map[string]Guard{}
 }
 
-func NewPartol(options ...PortalOption) (Partol, error) {
+func NewSentinel(options ...SentinelOption) (Sentinel, error) {
 
-	p := &partol{
+	p := &sentinel{
 		router: parse.NewRouter([]string{}),
 		guards: map[string]Guard{},
 	}
@@ -133,9 +148,9 @@ func NewPartol(options ...PortalOption) (Partol, error) {
 	return p, nil
 }
 
-type PortalOption func(p *partol) error
+type SentinelOption func(p *sentinel) error
 
-func WithConfig(configPath string) PortalOption {
+func WithConfig(configPath string) SentinelOption {
 	file, err := os.Open(configPath)
 	if err != nil {
 		panic(err)
@@ -150,7 +165,7 @@ func WithConfig(configPath string) PortalOption {
 
 	text := string(content)
 
-	return func(p *partol) error {
+	return func(p *sentinel) error {
 		lines := strings.Split(text, "\n")
 		for lineIndex, line := range lines {
 			if strings.HasPrefix(line, "#") {
