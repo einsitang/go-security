@@ -46,10 +46,10 @@ example:
 样例: `/api/v1/action/delete` , $0 = delete
 
 > 通配符仅可用于路径的末端，以避免通配多个路径
-> example: 
-> /imgs/*/:year/:month/:day/:fileName 
+> example:  
+> /imgs/*/:year/:month/:day/:fileName
 > 
-> /imgs/avator/2025/05/19/xxx.jpg , $0 = avator/2025/05/19/xxx.jpg 
+> /imgs/avator/2025/05/19/xxx.jpg , $0 = avator/2025/05/19/xxx.jpg
 
 ## 权限表达式 express
 
@@ -72,7 +72,7 @@ example:
 - 支持 `==` `!=` `>` `>=` `<` `<=` 比较语句
 - 支持 `+` `-` `*` `/` `%` 数学运算符
 
-```
+```shell
 # example:
 allow: Role("admin") or (Permission('doc:read') and $category == "guest")
 deny: Group("guest") and $category == "tech"
@@ -142,7 +142,7 @@ fmt.Logf("check: %v",check) // true
 你可以通过动态添加端点(endpoint)的方式组织路由，然后使用 `Sentinel` 自动组织不同的警卫(`Guard`)驻守不同的端点
 
 ```go
-sentinel, err := NewSentinal()
+sentinel, err := NewSentinel()
 if err!=nil {
     ....
     return
@@ -165,8 +165,6 @@ if err !=nil {
 } else {
     fmt.Logf("check: %v",checked) // true
 }
-
-
 ```
 
 使用 `WithConfig` 初始化 `Sentinal` 实例
@@ -190,8 +188,6 @@ if err !=nil {
 } else {
     fmt.Logf("check: %v",checked) // true
 }
-
-
 ```
 
 规则文件 `rule.txt` 格式:
