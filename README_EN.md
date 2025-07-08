@@ -57,13 +57,22 @@ Example: `/api/v1/action/delete`, $0 = delete
 
 `allow` / `deny`
 
-### Role / Permission / Group
+### Role(s)/ Permission(s) / Group(s)
 
-`Role("admin")`
+`Role('admin')`
+
+`Roles('admin','manager')`
+> Equivalent to: Role('admin') or Role('manager')
 
 `Permission('doc:read')`
 
+`Permissions('doc:read','doc:list')`
+> Equivalent to: Permission('doc:read') or Permission('doc:list')
+
 `Group("engineer")`
+
+`Groups('enginner','manager')`
+> Equivalent to: Group('enginner') or Group('manager')
 
 ### Expressions
 

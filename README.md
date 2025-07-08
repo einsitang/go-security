@@ -59,11 +59,22 @@ example:
 
 ### 角色/权限/组
 
-`Role("admin")`
+
+`Role('admin')`
+
+`Roles('admin','manager')`
+> 等价于: Role('admin') or Role('manager')
 
 `Permission('doc:read')`
 
+`Permissions('doc:read','doc:list')`
+> 等价于: Permission('doc:read') or Permission('doc:list')
+
 `Group("engineer")`
+
+`Groups('enginner','manager')`
+> 等价于: Group('enginner') or Group('manager')
+
 
 ### 表达式
 
