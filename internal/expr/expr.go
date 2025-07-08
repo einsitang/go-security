@@ -3,6 +3,7 @@ package expr
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/bzick/tokenizer"
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
@@ -18,15 +19,14 @@ const (
 	TDoubleQuoted
 	TSignleQuoted
 	TPolicy
-	TRole
-	TPermission
-	TGroup
+	TBuiltinFunction
 	TLogic
 	TNegate
 	TCurlyOpen
 	TCurlyClose
 	TPlaceholder
 	TCustomParam
+	TComma
 )
 
 type syntaxAnalyzer struct {
@@ -45,10 +45,10 @@ type SyntaxAnalyzer interface {
 func NewAnalyzer() *syntaxAnalyzer {
 
 	_tokenizer := tokenizer.New()
-	_tokenizer.DefineTokens(TPolicy, []string{"allow", "deny"})                              // Policy
-	_tokenizer.DefineTokens(TRole, []string{"Role"}, tokenizer.AloneTokenOption)             // 内置单元函数
-	_tokenizer.DefineTokens(TPermission, []string{"Permission"}, tokenizer.AloneTokenOption) // 内置单元函数
-	_tokenizer.DefineTokens(TGroup, []string{"Group"}, tokenizer.AloneTokenOption)           // 内置单元函数
+	_tokenizer.DefineTokens(TPolicy, []string{"allow", "deny"}) // Policy
+	_tokenizer.DefineTokens(TBuiltinFunction, []string{
+		"Role", "Permission", "Group", "Roles", "Permissions", "Groups",
+	}, tokenizer.AloneTokenOption) // 内置单元函数
 	_tokenizer.DefineTokens(TCurlyOpen, []string{"("})
 	_tokenizer.DefineTokens(TCurlyClose, []string{")"})
 	_tokenizer.DefineTokens(TNegate, []string{"!"})                                  // 逻辑运算符 单元
@@ -56,6 +56,7 @@ func NewAnalyzer() *syntaxAnalyzer {
 	_tokenizer.DefineTokens(TComparison, []string{"<", "<=", ">=", ">", "==", "!="}) // 逻辑运算符 双元
 	_tokenizer.DefineTokens(TLogic, []string{"and", "or"})                           // 逻辑符 双元
 	_tokenizer.DefineTokens(TDot, []string{"."})
+	_tokenizer.DefineTokens(TComma, []string{","})
 	_tokenizer.DefineStringToken(TDoubleQuoted, `"`, `"`)
 	_tokenizer.DefineStringToken(TSignleQuoted, `'`, `'`)
 	_tokenizer.DefineTokens(TPlaceholder, []string{"$"})
@@ -217,26 +218,109 @@ func mergeAnalysis(cacheOperTokens []*syntaxDef, syntaxStatementStack []syntax.S
 // 内置函数语法解析器
 func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 
+	switch token.ValueString() {
+	case "Role", "Permission", "Group":
+		return singleVarBuiltinFunctionParse(token, stream, input)
+	case "Roles", "Permissions", "Groups":
+		return multiVarBuiltinFunctionParse(token, stream, input)
+	}
+
+	return nil, parseError("unknow builtin function", token, stream, input)
+}
+
+func arrayParamsParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) ([]string, error) {
+	values := []string{}
 	curlyOpen := stream.GoNext().CurrentToken()
-	// 必须是 (
+	// must with (
+	if !expectType(curlyOpen, []tokenizer.TokenKey{TCurlyOpen}) {
+		return nil, parseError(fmt.Sprintf("syntax error, %s must with \"(\"", token.ValueString()), token, stream, input)
+	}
+
+	// Looking forward to the comma ?
+	lookForComma := false
+	nextToken := stream.GoNext().CurrentToken()
+	for nextToken.IsValid() {
+
+		if !lookForComma && expectType(nextToken, []tokenizer.TokenKey{tokenizer.TokenString}) {
+			// String Constant
+			lookForComma = true
+			val := nextToken.ValueString()
+			val = strings.Trim(val, "'")
+			val = strings.Trim(val, "\"")
+			values = append(values, val)
+		} else if lookForComma && expectType(nextToken, []tokenizer.TokenKey{TComma}) {
+			// comma
+			lookForComma = false
+		} else {
+			// 括号结束
+			break
+		}
+		nextToken = stream.GoNext().CurrentToken()
+	}
+
+	curlyClose := stream.CurrentToken()
+	// must with )
+	if !expectType(curlyClose, []tokenizer.TokenKey{TCurlyClose}) {
+		return nil, parseError(fmt.Sprintf("syntax error, %s must with \")\" but meet \"%s\"", token.ValueString(), curlyClose.ValueString()), token, stream, input)
+	}
+
+	if len(values) == 0 {
+		return nil, parseError(fmt.Sprintf("syntax error, %s must with at least one value", token.ValueString()), token, stream, input)
+	}
+
+	return values, nil
+}
+
+func multiVarBuiltinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
+
+	values, err := arrayParamsParse(token, stream, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// after expect check
+	nextToken := stream.NextToken()
+	if nextToken.IsValid() && !expectStringValue(nextToken, []string{"and", "or", ")"}) {
+		return nil, parseError(fmt.Sprintf("%s(%s)\" %s only supports \"and\" and \"or\" constructions.\n", token.ValueString(), values, nextToken.ValueString()), token, stream, input)
+	}
+
+	tokenString := token.ValueString()
+	switch tokenString {
+	case "Roles":
+		return value.NewRolesSyntax(values), nil
+	case "Permissions":
+		return value.NewPermissionsSyntax(values), nil
+	case "Groups":
+		return value.NewGroupsSyntax(values), nil
+	}
+
+	return nil, parseError("unknow builtin function", token, stream, input)
+}
+
+// Role Permission Group
+func singleVarBuiltinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
+	curlyOpen := stream.GoNext().CurrentToken()
+	// must with (
 	if !expectType(curlyOpen, []tokenizer.TokenKey{TCurlyOpen}) {
 		return nil, parseError(fmt.Sprintf("syntax error, %s must with \"(\"", token.ValueString()), token, stream, input)
 	}
 
 	vToken := stream.GoNext().CurrentToken()
 	val := vToken.ValueString()
-	// 必须是 StringConstant
+	val = strings.Trim(val, "'")
+	val = strings.Trim(val, "\"")
+	// must with StringConstant
 	if !expectType(vToken, []tokenizer.TokenKey{tokenizer.TokenString}) {
 		return nil, parseError(fmt.Sprintf("grammatical error, you need input string. example: %s(\"something\")\n", token.ValueString()), token, stream, input)
 	}
 
-	curlyClose := stream.GoNext().CurrentToken() // 必须是 )
+	curlyClose := stream.GoNext().CurrentToken()
+	// must with )
 	if !expectType(curlyClose, []tokenizer.TokenKey{TCurlyClose}) {
-		return nil, parseError(fmt.Sprintf("%s(%s 没有闭合括号\n", token.ValueString(), vToken.ValueString()), token, stream, input)
+		return nil, parseError(fmt.Sprintf("syntax error, %s must with \")\"\n", vToken.ValueString()), token, stream, input)
 	}
 
-	// 后推断检查
-	// nextToken := stream.GoNext().CurrentToken()
+	// after expect check
 	nextToken := stream.NextToken()
 	if nextToken.IsValid() && !expectStringValue(nextToken, []string{"and", "or", ")"}) {
 		return nil, parseError(fmt.Sprintf("%s(%s)\" %s only supports \"and\" and \"or\" constructions.\n", token.ValueString(), vToken.ValueString(), nextToken.ValueString()), token, stream, input)
@@ -250,11 +334,9 @@ func builtinFunctionParse(token *tokenizer.Token, stream *tokenizer.Stream, inpu
 		return value.NewPermissionSyntax(val), nil
 	case "Group":
 		return value.NewGroupSyntax(val), nil
-	case "Roles", "Permissions", "Groups":
-		return nil, parseError("暂不支持 Roles,Permissions,Groups", token, stream, input)
 	}
 
-	return nil, parseError("无效的内置函数", token, stream, input)
+	return nil, parseError("unknow builtin function", token, stream, input)
 }
 
 // 占位符变量解析器
@@ -279,7 +361,10 @@ func customParamSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, in
 func constantSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input string) (syntax.Syntax, error) {
 	switch token.Key() {
 	case tokenizer.TokenString:
-		return value.NewConstantSyntax(token.ValueString()), nil
+		val := token.ValueString()
+		val = strings.Trim(val, "'")
+		val = strings.Trim(val, "\"")
+		return value.NewConstantSyntax(val), nil
 	case tokenizer.TokenInteger:
 		return value.NewConstantSyntax(token.ValueInt64()), nil
 	case tokenizer.TokenFloat:
@@ -298,13 +383,10 @@ func valueSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input st
 		return placeholderSyntaxParse(token, stream, input)
 	} else if expectType(token, []tokenizer.TokenKey{TCustomParam}) {
 		return customParamSyntaxParse(token, stream, input)
-	} else if expectType(token, []tokenizer.TokenKey{TRole, TPermission, TGroup}) {
+	} else if expectType(token, []tokenizer.TokenKey{TBuiltinFunction}) {
 		// Role/Permission/Group
 		return builtinFunctionParse(token, stream, input)
 	}
-	// * Roles/Permissions/Groups
-
-	// *Array : in(...)
 
 	return nil, parseError("unknow value syntax", token, stream, input)
 }
@@ -349,23 +431,12 @@ func operSyntaxParse(token *tokenizer.Token, stream *tokenizer.Stream, input str
 // 检查当前token值 是否属于 "值Token" (ValueToken)
 func expectValueToken(token *tokenizer.Token) bool {
 	switch token.Key() {
-	case TRole, TPermission, TGroup, tokenizer.TokenString, TPlaceholder, TCustomParam, tokenizer.TokenFloat, tokenizer.TokenInteger:
+	case TBuiltinFunction, tokenizer.TokenString, TPlaceholder, TCustomParam, tokenizer.TokenFloat, tokenizer.TokenInteger:
 		return true
 	}
 
 	return false
 }
-
-// expectOperToken
-// 检查当前token值 是否属于 "操作Token" (OperToken)
-// func expectOperToken(token *tokenizer.Token) bool {
-// 	switch token.ValueString() {
-// 	case "+", "-", "*", "/", "%", "and", "or", "!", "==", "!=", ">=", ">", "<=":
-// 		return true
-// 	}
-
-// 	return false
-// }
 
 // expectType
 // 检测当前token的类型

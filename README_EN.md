@@ -67,15 +67,17 @@ Example: `/api/v1/action/delete`, $0 = delete
 
 ### Expressions
 
-- Supports built-in functions: `Role`, `Permission`, `Group`
+- Supports built-in functions: `Role`, `Permission`, `Group` , `Roles` , `Permissions` , `Groups`
 - Supports logical operators: `and`, `or`
 - Supports comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`
-- Supports arithmetic operators: `+`, `-`, [*](file:///Users/einsitang/github/sevlow/go-security/README.md), [/](file:///Users/einsitang/github/sevlow/go-security/README.md), `%`
+- Supports arithmetic operators: `+`, `-`, `*`, `%`
+- Support the unit operator `!`
 
 ```shell
 # example:
-allow: Role("admin") or (Permission('doc:read') and $category == "guest")
-deny: Group("guest") and $category == "tech"
+allow: Role('admin') or (Permission('doc:read') and $category == 'guest')
+allow: Roles('admin','manager') or Permission('doc:read','doc:list')
+deny: Group('guest') and $category == 'tech'
 ```
 
 ## Usage

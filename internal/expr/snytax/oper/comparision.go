@@ -2,6 +2,7 @@ package oper
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cast"
 
@@ -13,6 +14,8 @@ type eqSyntax struct {
 }
 
 func NewEqSyntax(left, right syntax.Syntax) syntax.Syntax {
+	var f os.File
+	_ = f
 	return &eqSyntax{
 		builtiOperSyntax{
 			priority: 55,

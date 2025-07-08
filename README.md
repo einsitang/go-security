@@ -67,15 +67,17 @@ example:
 
 ### 表达式
 
-- 支持内置函数 `Role` / `Permission` / `Group`
+- 支持内置函数 `Role` / `Permission` / `Group` / `Roles` / `Permissions` / `Groups`
 - 支持 `and` / `or` 逻辑符
 - 支持 `==` `!=` `>` `>=` `<` `<=` 比较语句
 - 支持 `+` `-` `*` `/` `%` 数学运算符
+- 支持单元操作符 `!`
 
 ```shell
 # example:
-allow: Role("admin") or (Permission('doc:read') and $category == "guest")
-deny: Group("guest") and $category == "tech"
+allow: Role('admin') or (Permission('doc:read') and $category == 'guest')
+allow: Roles('admin','manager') or Permission('doc:read','doc:list')
+deny: Group('guest') and $category == 'tech'
 ```
 
 ## 使用 usage

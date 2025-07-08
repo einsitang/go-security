@@ -1,8 +1,6 @@
 package value
 
 import (
-	"strings"
-
 	"github.com/einsitang/go-security/internal/expr/ctx"
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
 )
@@ -58,10 +56,8 @@ func (s *constantSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 func NewConstantSyntax(val any) syntax.Syntax {
 	switch val := val.(type) {
 	case string:
-		value := strings.Trim(val, "'")
-		value = strings.Trim(value, "\"")
 		return &constantSyntax{
-			val:      value,
+			val:      val,
 			priority: 100,
 			kind:     0,
 		}

@@ -33,7 +33,7 @@ func (g *guard) Check(context *SecurityContext) (bool, error) {
 	}
 
 	if eval.Type != syntax.Type_Bool {
-		log.Printf("[warnning]evaluate return value not type bool , result.type:%v , result.value:%v \n", reflect.TypeOf(eval.Type).String(), eval.Value)
+		log.Printf("[warnning] evaluate return value not type bool , result.type:%v , result.value:%v \n", reflect.TypeOf(eval.Type).String(), eval.Value)
 		return false, nil
 	}
 
