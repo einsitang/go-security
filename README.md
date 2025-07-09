@@ -87,7 +87,7 @@ example:
 ```shell
 # example:
 allow: Role('admin') or (Permission('doc:read') and $category == 'guest')
-allow: Roles('admin','manager') or Permission('doc:read','doc:list')
+allow: Roles('admin','manager') or Permissions('doc:read','doc:list')
 deny: Group('guest') and $category == 'tech'
 ```
 
