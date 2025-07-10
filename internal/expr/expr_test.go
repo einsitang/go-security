@@ -3,8 +3,8 @@ package expr
 import (
 	"testing"
 
-	"github.com/bzick/tokenizer"
 	"github.com/einsitang/go-security/internal/expr/ctx"
+	"github.com/einsitang/go-security/internal/expr/tokenizer"
 )
 
 type principal struct {
@@ -78,7 +78,7 @@ func TestTokenizeParse(t *testing.T) {
 	_tokenizer.DefineTokens(TCustomParam, []string{"#"})
 	_tokenizer.AllowKeywordSymbols(tokenizer.Underscore, tokenizer.Numbers)
 
-	input := "Roles('hello','world')"
+	input := "Roless('hello','world')"
 	stream := _tokenizer.ParseString(input)
 	for stream.IsValid() {
 		token := stream.CurrentToken()

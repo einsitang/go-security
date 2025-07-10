@@ -3,8 +3,8 @@ package expr
 import (
 	"errors"
 
-	"github.com/bzick/tokenizer"
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
+	"github.com/einsitang/go-security/internal/expr/tokenizer"
 )
 
 type syntaxDef struct {

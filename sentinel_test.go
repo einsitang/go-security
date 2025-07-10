@@ -3,8 +3,6 @@ package security
 import (
 	"testing"
 	"time"
-
-	"github.com/bzick/tokenizer"
 )
 
 type principal struct {
@@ -28,27 +26,6 @@ func (p *principal) Permissions() []string {
 
 func (p *principal) Groups() []string {
 	return p.groups
-}
-
-func TestTokenizeParse(t *testing.T) {
-	THello := tokenizer.TokenKey(100)
-	TWorld := tokenizer.TokenKey(101)
-	TRoleKey := tokenizer.TokenKey(105)
-	TAndKey := tokenizer.TokenKey(106)
-
-	parser := tokenizer.New()
-	// ignore case
-	parser.DefineTokens(THello, []string{"hello"}, tokenizer.AloneTokenOption)
-	parser.DefineTokens(TRoleKey, []string{"Role"})
-	parser.DefineTokens(TWorld, []string{"world"})
-	parser.DefineTokens(TAndKey, []string{"and"})
-	input := "helloworld can match,prefixWorld role and roles both not match,but Role and WorLd is match will"
-	stream := parser.ParseString(input)
-	for stream.IsValid() {
-		token := stream.CurrentToken()
-		t.Logf("[%d:%d] %s %v", token.Line(), token.Offset(), token.ValueString(), token.Key())
-		stream.GoNext()
-	}
 }
 
 func TestPartol(t *testing.T) {

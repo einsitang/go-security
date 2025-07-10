@@ -5,10 +5,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bzick/tokenizer"
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
 	"github.com/einsitang/go-security/internal/expr/snytax/oper"
 	"github.com/einsitang/go-security/internal/expr/snytax/value"
+	"github.com/einsitang/go-security/internal/expr/tokenizer"
 )
 
 // define custom tokens keys
