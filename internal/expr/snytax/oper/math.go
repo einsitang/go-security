@@ -1,6 +1,8 @@
 package oper
 
 import (
+	"errors"
+
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
 )
 
@@ -184,5 +186,8 @@ func mathEvaluate(lr, rr syntax.SyntaxValue, iCallback intFn, fCallback floatFn)
 			}
 		}
 	}
-	panic("type error")
+	return syntax.SyntaxValue{
+		Error:   errors.New("invalid types"),
+		IsError: true,
+	}
 }
