@@ -29,6 +29,8 @@ go-security 是一个专为 Go 应用程序设计的轻量级且灵活的安全�
 go get github.com/einsitang/go-security
 ```
 
+> go-security now is not release yet
+
 ## 🎯 快速开始
 
 ### 1. 定义用户主体 (SecurityPrincipal)
