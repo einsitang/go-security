@@ -7,7 +7,12 @@ type Principal interface {
 	Groups() []string
 }
 type Context struct {
-	Principal    Principal
-	Params       map[string]any
-	CustomParams map[string]any
+	// "当事人"
+	Principal Principal
+
+	// endpoint 参数
+	Params map[string]any
+
+	// 自定义参数
+	CustomParams map[string]string
 }

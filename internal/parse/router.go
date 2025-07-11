@@ -52,8 +52,8 @@ func NewRouter(patterns []string) *Router {
 }
 
 // Add 添加一个或多个路由规则
-func (r *Router) Add(endpoints ...string) {
-	for _, endpoint := range endpoints {
+func (r *Router) Add(patterns ...string) {
+	for _, endpoint := range patterns {
 
 		methods, pattern := splitMethodAndPattern(endpoint)
 		// 分割路径和查询参数

@@ -12,7 +12,12 @@ import (
 var analyzer = expr.NewAnalyzer()
 
 type Guard interface {
+	// 返回原始表达式
 	Express() string
+
+	// 权限检查
+	//
+	// 通过 true / 失败 false , 错误则 err 非 nil, 此时不考虑 bool 值
 	Check(context *SecurityContext) (bool, error)
 }
 

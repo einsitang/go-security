@@ -95,7 +95,7 @@ func TestAnalyzer(t *testing.T) {
 	// input := "allow:Permission('doc:read') and $category == 'guest'"
 	// input := "allow:!((1 + 1) * 4 == 18)"
 	// input := "allow:Role('admin')"
-	input := "allow:Roles('admin','manager') and Permissions('read')"
+	input := "allow:Roles('admin','manager') and Permissions('read') and #x == '8'"
 	t.Logf("\n%s \n", input)
 	_analyzer := NewAnalyzer()
 	_analyzer.DebugTokens(input)
@@ -113,8 +113,8 @@ func TestAnalyzer(t *testing.T) {
 			permissions: []string{"read", "execute"},
 		},
 		Params: params,
-		CustomParams: map[string]any{
-			"x": 8,
+		CustomParams: map[string]string{
+			"x": "8",
 		},
 	}
 

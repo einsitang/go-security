@@ -55,6 +55,14 @@ func (s *builtiOperSyntax) ChangeRight(right syntax.Syntax) {
 }
 
 // 运行求值
+//
+// builtiOperSyntax 对于 Evaluate 的默认实现仅完成了 left 和 right 的ReturnValue.IsError 检查
+//
+// 而实际操作符号对左右值类型需要额外做检查
+//
+// match 必须做number检查，并且尝试转型
+//
+// comparision 存在 eq / notEq 可以同时支持bool/string/number 类型，可以统一转换成 string 类型检查，不过其他比较符则需要做 number 类型的检查(以及转换)
 func (s *builtiOperSyntax) Evaluate(c *ctx.Context) syntax.SyntaxValue {
 	leftR := s.left.Evaluate(c)
 	rightR := s.right.Evaluate(c)

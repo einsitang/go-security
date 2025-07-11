@@ -2,7 +2,6 @@ package oper
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cast"
 
@@ -14,8 +13,6 @@ type eqSyntax struct {
 }
 
 func NewEqSyntax(left, right syntax.Syntax) syntax.Syntax {
-	var f os.File
-	_ = f
 	return &eqSyntax{
 		builtiOperSyntax{
 			priority: 55,
@@ -23,9 +20,13 @@ func NewEqSyntax(left, right syntax.Syntax) syntax.Syntax {
 			left:     left,
 			right:    right,
 			evalute: func(leftR, rightR syntax.SyntaxValue) syntax.SyntaxValue {
+				// 判定两者类型，比如字符串 '2' != 2 , 需要考虑隐性转型？
+				// not eq 也存在相同问题
+				lv := cast.ToString(leftR.Value)
+				rv := cast.ToString(rightR.Value)
 				return syntax.SyntaxValue{
 					Type:  syntax.Type_Bool,
-					Value: leftR.Value == rightR.Value,
+					Value: lv == rv,
 				}
 			},
 		},
@@ -46,9 +47,11 @@ func NewNotEqSyntax(left, right syntax.Syntax) syntax.Syntax {
 			left:     left,
 			right:    right,
 			evalute: func(leftR, rightR syntax.SyntaxValue) syntax.SyntaxValue {
+				lv := cast.ToString(leftR.Value)
+				rv := cast.ToString(rightR.Value)
 				return syntax.SyntaxValue{
 					Type:  syntax.Type_Bool,
-					Value: leftR.Value != rightR.Value,
+					Value: lv != rv,
 				}
 			},
 		},
