@@ -28,6 +28,7 @@ Developers can define security access rules for endpoints through concise syntax
 ```bash
 go get github.com/einsitang/go-security
 ```
+> go-security now is not release yet
 
 ## 🎯 Quick Start
 
