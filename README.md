@@ -1,4 +1,6 @@
-# go-security
+<div align="center">
+  <h1>go-security</h1>
+</div>
 
 [![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
 [![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
@@ -91,9 +93,12 @@ func main() {
         Params: map[string]any{
             "type": "user",
         },
+        // 此处可以按需加入自定义的参数要求
+        CustomParams: map[string]string{}
     })
 
     if err != nil {
+        // 如果产生 err ,可以忽略 passed , 按错误处理
         panic(err)
     }
 
@@ -145,7 +150,7 @@ func main() {
 
 ### 端点路由格式 (Endpoint)
 
-端点格式：`METHOD PATH`
+端点格式（pattern）：`METHOD PATH`
 
 #### 基本格式
 
@@ -153,7 +158,7 @@ func main() {
 GET /api/v1/users           # 指定 GET 方法
 POST /api/v1/users          # 指定 POST 方法
 GET/POST /api/v1/users      # 支持多种方法，用 / 分割
-/api/v1/users               # 忽略方法，匹配所有 HTTP 方法
+/api/v1/users               # 忽略方法，匹配所有 方法
 ```
 
 #### 路径参数
@@ -221,10 +226,7 @@ allow: Role('admin')
 allow: Role('admin') or (Permission('users.read') and $category == 'public')
 
 # 参数验证
-allow: Role('manager') and $userId == 'self'
-
-# 复杂逻辑
-deny: Group('guest') and $action == 'delete'
+allow: Role('manager') and $format == 'json'
 
 # 数值计算
 allow: Permission('quota.check') and $requested <= $available * 0.8
@@ -286,7 +288,7 @@ passed, err := sentinel.Check(
 
 在表达式中使用自定义参数：
 
-```
+```bash
 allow: Permission('documents.read') and #action == 'read' and #resource == 'document'
 ```
 
@@ -309,8 +311,8 @@ passed, err := sentinel.Check(endpoint, user, nil)
 
 ```go
 // 规则: /api/books?category=:category
-// 请求: GET /api/books?category=fiction&page=1
-// 结果: ❌ 匹配失败，因为存在额外的 page 参数
+// 请求: GET /api/books?&page=1
+// 结果: ❌ 匹配失败，因为存在额外的 category 参数
 passed, err := sentinel.StrictCheck(endpoint, user, nil)
 
 // 请求: GET /api/books?category=fiction
@@ -382,7 +384,7 @@ type SecurityContext struct {
 
 ## 🛠️ 集成示例
 
-### 与 Gin 框架集成
+### 与 Gin 框架集成  (简单示例)
 
 ```go
 func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {

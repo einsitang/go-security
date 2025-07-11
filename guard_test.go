@@ -532,7 +532,7 @@ func TestGuard_MathematicalOperations(t *testing.T) {
 			name:    "Division operation",
 			express: "allow: $total / $count >= 10",
 			params: map[string]any{
-				"total": 100,
+				"total": "100",
 				"count": 5,
 			},
 			expected: true,

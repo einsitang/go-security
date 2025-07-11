@@ -1,4 +1,6 @@
-# go-security
+<div align="center">
+  <h1>go-security</h1>
+</div>
 
 [![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
 [![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
@@ -28,6 +30,7 @@ Developers can define security access rules for endpoints through concise syntax
 ```bash
 go get github.com/einsitang/go-security
 ```
+
 > go-security now is not release yet
 
 ## 🎯 Quick Start
@@ -192,23 +195,23 @@ Example: `/api/v1/files/2023/05/report.pdf` matches pattern `/api/v1/files/*`, p
 
 #### Built-in Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `Role(role)` | Check single role | `Role('admin')` |
-| `Roles(role1, role2, ...)` | Check multiple roles (OR relationship) | `Roles('admin', 'manager')` |
-| `Permission(perm)` | Check single permission | `Permission('users.read')` |
+| Function                         | Description                                  | Example                                    |
+| -------------------------------- | -------------------------------------------- | ------------------------------------------ |
+| `Role(role)`                     | Check single role                            | `Role('admin')`                            |
+| `Roles(role1, role2, ...)`       | Check multiple roles (OR relationship)       | `Roles('admin', 'manager')`                |
+| `Permission(perm)`               | Check single permission                      | `Permission('users.read')`                 |
 | `Permissions(perm1, perm2, ...)` | Check multiple permissions (OR relationship) | `Permissions('users.read', 'users.write')` |
-| `Group(group)` | Check single group | `Group('developers')` |
-| `Groups(group1, group2, ...)` | Check multiple groups (OR relationship) | `Groups('developers', 'admins')` |
+| `Group(group)`                   | Check single group                           | `Group('developers')`                      |
+| `Groups(group1, group2, ...)`    | Check multiple groups (OR relationship)      | `Groups('developers', 'admins')`           |
 
 #### Operators
 
-| Type | Operators | Description |
-|------|-----------|-------------|
-| Logical | `and`, `or` | Logical AND, logical OR |
-| Comparison | `==`, `!=`, `>`, `>=`, `<`, `<=` | Equal, not equal, greater than, greater than or equal, less than, less than or equal |
-| Mathematical | `+`, `-`, `*`, `/`, `%` | Add, subtract, multiply, divide, modulo |
-| Unary | `!` | Logical NOT |
+| Type         | Operators                        | Description                                                                          |
+| ------------ | -------------------------------- | ------------------------------------------------------------------------------------ |
+| Logical      | `and`, `or`                      | Logical AND, logical OR                                                              |
+| Comparison   | `==`, `!=`, `>`, `>=`, `<`, `<=` | Equal, not equal, greater than, greater than or equal, less than, less than or equal |
+| Mathematical | `+`, `-`, `*`, `/`, `%`          | Add, subtract, multiply, divide, modulo                                              |
+| Unary        | `!`                              | Logical NOT                                                                          |
 
 #### Expression Examples
 
@@ -222,8 +225,6 @@ allow: Role('admin') or (Permission('users.read') and $category == 'public')
 # Parameter validation
 allow: Role('manager') and $userId == 'self'
 
-# Complex logic
-deny: Group('guest') and $action == 'delete'
 
 # Numerical calculation
 allow: Permission('quota.check') and $requested <= $available * 0.8
@@ -308,8 +309,8 @@ Matches HTTP method, path, and query parameters simultaneously:
 
 ```go
 // Rule: /api/books?category=:category
-// Request: GET /api/books?category=fiction&page=1
-// Result: ❌ Match failed, because there's an extra page parameter
+// Request: GET /api/books?page=1
+// Result: ❌ Match failed, because there's an extra category parameter
 passed, err := sentinel.StrictCheck(endpoint, user, nil)
 
 // Request: GET /api/books?category=fiction
@@ -324,7 +325,7 @@ passed, err := sentinel.StrictCheck(endpoint, user, nil)
 type Guard interface {
     // Return original expression
     Express() string
-    
+
     // Permission check
     // Return values: pass(true)/fail(false), error information
     Check(context *SecurityContext) (bool, error)
@@ -340,13 +341,13 @@ func NewGuard(express string) (Guard, error)
 type Sentinel interface {
     // Add endpoint rule
     AddEndpoint(pattern string, express string) error
-    
+
     // Normal permission check (not strictly matching query parameters)
     Check(endpoint string, principal SecurityPrincipal, customParams map[string]string) (bool, error)
-    
+
     // Strict permission check (strictly matching query parameters)
     StrictCheck(endpoint string, principal SecurityPrincipal, customParams map[string]string) (bool, error)
-    
+
     // Clear all endpoint rules
     CleanEndpoints()
 }
@@ -381,7 +382,7 @@ type SecurityContext struct {
 
 ## 🛠️ Integration Examples
 
-### Integration with Gin Framework
+### Integration with Gin Framework (demo)
 
 ```go
 func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {
@@ -391,7 +392,7 @@ func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {
         if c.Request.URL.RawQuery != "" {
             endpoint += "?" + c.Request.URL.RawQuery
         }
-        
+
         // Get user information from context
         user, exists := c.Get("user")
         if !exists {
@@ -399,7 +400,7 @@ func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {
             c.Abort()
             return
         }
-        
+
         // Permission check
         passed, err := sentinel.Check(endpoint, user.(security.SecurityPrincipal), nil)
         if err != nil {
@@ -407,13 +408,13 @@ func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {
             c.Abort()
             return
         }
-        
+
         if !passed {
             c.JSON(403, gin.H{"error": "Insufficient permissions"})
             c.Abort()
             return
         }
-        
+
         c.Next()
     }
 }
@@ -421,13 +422,13 @@ func AuthMiddleware(sentinel security.Sentinel) gin.HandlerFunc {
 // Use middleware
 func main() {
     sentinel, _ := security.NewSentinel(security.WithConfig("./rules.txt"))
-    
+
     r := gin.Default()
     r.Use(AuthMiddleware(sentinel))
-    
+
     r.GET("/api/v1/users/:id", getUserHandler)
     r.POST("/api/v1/users", createUserHandler)
-    
+
     r.Run(":8080")
 }
 ```

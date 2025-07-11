@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	syntax "github.com/einsitang/go-security/internal/expr/snytax"
+	"github.com/spf13/cast"
 )
 
 // + add addition
@@ -184,6 +185,28 @@ func mathEvaluate(lr, rr syntax.SyntaxValue, iCallback intFn, fCallback floatFn)
 				Type:  syntax.Type_Number,
 				Value: fCallback(lr.Value.(float32), rr.Value.(float32)),
 			}
+		}
+	}
+	// 转型补丁
+	if leftIfnerType == syntax.Type_String || rightInferType == syntax.Type_String {
+		// 尝试转换成 float32 计算
+		leftFloat32V, err := cast.ToFloat32E(lr.Value)
+		if err != nil {
+			return syntax.SyntaxValue{
+				Error:   errors.New("invalid types"),
+				IsError: true,
+			}
+		}
+		rightFloat32V, err := cast.ToFloat32E(rr.Value)
+		if err != nil {
+			return syntax.SyntaxValue{
+				Error:   errors.New("invalid types"),
+				IsError: true,
+			}
+		}
+		return syntax.SyntaxValue{
+			Type:  syntax.Type_Number,
+			Value: fCallback(leftFloat32V, rightFloat32V),
 		}
 	}
 	return syntax.SyntaxValue{
