@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+type NotMatchRouterError error
+
 // Router 路由树结构
 type Router struct {
 	// root *node // 根节点
@@ -85,7 +87,7 @@ func (r *Router) Add(patterns ...string) {
 	}
 }
 
-func (r *Router) match(method string, fullPath string) (pattern string, params map[string]any, err error) {
+func (r *Router) match(method string, fullPath string) (pattern string, params map[string]any, err NotMatchRouterError) {
 	// 分割路径和查询参数
 	pathPart, queryPart := splitPathAndQuery(fullPath)
 	pathSegments := splitPath(pathPart)
@@ -93,12 +95,12 @@ func (r *Router) match(method string, fullPath string) (pattern string, params m
 	// 查找路径匹配
 	root, ok := r.roots[method]
 	if !ok {
-		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+		return "", nil, NotMatchRouterError(fmt.Errorf("no matching route found for: %s", fullPath))
 	}
 
 	pathParams, leafNode, wildcardValues := root.findRoute(pathSegments, nil, nil)
 	if leafNode == nil {
-		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+		return "", nil, NotMatchRouterError(fmt.Errorf("no matching route found for: %s", fullPath))
 	}
 
 	// 解析实际URL的查询参数
@@ -124,7 +126,7 @@ func (r *Router) match(method string, fullPath string) (pattern string, params m
 
 	// 检查查询参数匹配
 	if !matchQueryParams(leafNode.queryParams, actualQueryParams) {
-		return "", nil, fmt.Errorf("query parameters do not match for route: %s", leafNode.pattern)
+		return "", nil, NotMatchRouterError(fmt.Errorf("query parameters do not match for route: %s", leafNode.pattern))
 	}
 
 	// 返回完整模式
@@ -132,7 +134,7 @@ func (r *Router) match(method string, fullPath string) (pattern string, params m
 }
 
 // Match 严格匹配路由（包括路径和查询参数）
-func (r *Router) Match(endpoint string) (pattern string, params map[string]any, err error) {
+func (r *Router) Match(endpoint string) (pattern string, params map[string]any, err NotMatchRouterError) {
 	methods, fullPath := splitMethodAndPattern(endpoint)
 	method := strings.ToUpper(methods[0])
 
@@ -148,11 +150,11 @@ func (r *Router) Match(endpoint string) (pattern string, params map[string]any, 
 	return pattern, params, err
 }
 
-func (r *Router) matchPath(method string, fullPath string) (pattern string, params map[string]any, err error) {
+func (r *Router) matchPath(method string, fullPath string) (pattern string, params map[string]any, err NotMatchRouterError) {
 
 	root, ok := r.roots[method]
 	if !ok {
-		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+		return "", nil, NotMatchRouterError(fmt.Errorf("no matching route found for: %s", fullPath))
 	}
 
 	// 分割路径和查询参数
@@ -162,7 +164,7 @@ func (r *Router) matchPath(method string, fullPath string) (pattern string, para
 	// 查找路径匹配
 	pathParams, leafNode, wildcardValues := root.findRoute(pathSegments, nil, nil)
 	if leafNode == nil {
-		return "", nil, fmt.Errorf("no matching route found for: %s", fullPath)
+		return "", nil, NotMatchRouterError(fmt.Errorf("no matching route found for: %s", fullPath))
 	}
 
 	// 解析实际URL的查询参数
@@ -191,7 +193,7 @@ func (r *Router) matchPath(method string, fullPath string) (pattern string, para
 }
 
 // MatchPath 只匹配路径部分，忽略查询参数匹配
-func (r *Router) MatchPath(endpoint string) (pattern string, params map[string]any, err error) {
+func (r *Router) MatchPath(endpoint string) (pattern string, params map[string]any, err NotMatchRouterError) {
 
 	methods, fullPath := splitMethodAndPattern(endpoint)
 	method := strings.ToUpper(methods[0])

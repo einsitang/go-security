@@ -13,6 +13,11 @@ import (
 type SecurityPrincipal ctx.Principal
 type SecurityContext ctx.Context
 
+// endpoint not found error
+//
+// only for sentinel.Check function will return this error
+type EndpointNotFoundError error
+
 // 哨兵
 //
 // 看守全局路由的哨兵模式
@@ -97,7 +102,6 @@ func (p *sentinel) AddEndpoint(endpoint string, express string) error {
 
 		guard, err := NewGuard(express)
 		if err != nil {
-			fmt.Println("here")
 			return err
 		}
 
@@ -115,15 +119,16 @@ func (p *sentinel) StrictCheck(endpoint string, principal SecurityPrincipal, cus
 }
 
 func (p *sentinel) check(endpoint string, principal SecurityPrincipal, customParams map[string]string, strict bool) (bool, error) {
-	var matchFn func(endpoint string) (pattern string, params map[string]any, err error)
+	var matchFn func(endpoint string) (pattern string, params map[string]any, err parse.NotMatchRouterError)
 	if strict {
 		matchFn = p.router.Match
 	} else {
 		matchFn = p.router.MatchPath
 	}
-	pattern, params, err := matchFn(endpoint)
-	if err != nil {
-		return false, err
+	pattern, params, notMatchError := matchFn(endpoint)
+	if notMatchError != nil {
+
+		return false, EndpointNotFoundError(notMatchError)
 	}
 
 	var key string
