@@ -5,6 +5,7 @@
 [![Go report](https://goreportcard.com/badge/github.com/einsitang/go-security)](https://goreportcard.com/report/github.com/einsitang/go-security)
 [![License](https://img.shields.io/github/license/einsitang/go-security)](./LICENSE)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/einsitang/go-security)](https://golang.org/doc/devel/release.html)
+[![Release](https://img.shields.io/github/v/release/einsitang/go-security.svg?style=flat-square)](https://github.com/einsitang/go-security/releases)
 
 <div align="center">
   <strong>English | <a href="README.md">中文</a></strong>
